@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{{ title }}</title>
+    <link rel="shortcut icon" href="/static/favicon.ico"/>
+{#    https://icons8.com/icons/set/planaria#}
+
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/vue.global.prod.js"></script>
+    <script src="/static/js/main.js"></script>
+</head>
+<body>
+<div class="row pt-1 pb-2 m-0">
+    <ul class="nav nav-tabs pe-0">
+        <li class="nav-item">
+            <a class="nav-link active" href="javascript:void(0)">Text-image feedback spiral</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link " href="javascript:void(0)">Settings</a>
+        </li>
+    </ul>
+
+    {% verbatim %}
+        <div id="app">{{ message }}</div>
+    {% endverbatim %}
+
+    <script>
+      const { createApp, ref } = Vue
+
+      createApp({
+        setup() {
+          const message = ref('Hello vue!')
+          return {
+            message
+          }
+        }
+      }).mount('#app')
+    </script>
+</div>
+
+
+</body>
+</html>
