@@ -10,11 +10,13 @@
 
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
     <script src="/static/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/vue.global.prod.js"></script>
+    <script src="/static/js/vue.min.js"></script>
+    {{ data|json_script:"vue_data" }}
     <script src="/static/js/main.js"></script>
 </head>
 <body>
-<div class="row pt-1 pb-2 m-0">
+{% verbatim %}
+<div class="row pt-1 pb-2 m-0" id="app">
     <ul class="nav nav-tabs pe-0">
         <li class="nav-item">
             <a class="nav-link active" href="javascript:void(0)">Text-image feedback spiral</a>
@@ -23,25 +25,21 @@
             <a class="nav-link " href="javascript:void(0)">Settings</a>
         </li>
     </ul>
-
-    {% verbatim %}
-        <div id="app">{{ message }}</div>
-    {% endverbatim %}
-
-    <script>
-      const { createApp, ref } = Vue
-
-      createApp({
-        setup() {
-          const message = ref('Hello vue!')
-          return {
-            message
-          }
-        }
-      }).mount('#app')
-    </script>
+    {{ message }}
 </div>
+{% endverbatim %}
 
-
+<script>
+var app = new Vue({
+  el: '#app',
+  data() {
+    return Object.assign({
+        message: 'Hello'
+      },
+      JSON.parse(document.getElementById('vue_data').textContent)
+    );
+  }
+});
+</script>
 </body>
 </html>
