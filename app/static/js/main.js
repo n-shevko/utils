@@ -3,8 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     el: '#app',
     data() {
       return Object.assign({
-          ws: null,
-          message: 'Hello'
+          ws: null
         },
         JSON.parse(document.getElementById('vue_data').textContent)
       );
