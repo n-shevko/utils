@@ -1,6 +1,8 @@
-from utils import Common
+from app.utils import Common, get_config
 
 
 class Worker(Common):
-    def ping(self, params):
-        return 'pong'
+    def switch_tab(self, params):
+        config = get_config()
+        config.current_tab = params['name']
+        config.save()

@@ -18,28 +18,12 @@
 {% verbatim %}
 <div class="row pt-1 pb-2 m-0" id="app">
     <ul class="nav nav-tabs pe-0">
-        <li class="nav-item">
-            <a class="nav-link active" href="javascript:void(0)">Text-image feedback spiral</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link " href="javascript:void(0)">Settings</a>
+        <li class="nav-item" v-for="item in menu">
+            <a :class="['nav-link', { 'active': item.name === config.current_tab }]" @click.prevent.stop="switchTab(item.name)">{{ item.label }}</a>
         </li>
     </ul>
     {{ message }}
 </div>
 {% endverbatim %}
-
-<script>
-var app = new Vue({
-  el: '#app',
-  data() {
-    return Object.assign({
-        message: 'Hello'
-      },
-      JSON.parse(document.getElementById('vue_data').textContent)
-    );
-  }
-});
-</script>
 </body>
 </html>

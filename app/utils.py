@@ -14,9 +14,9 @@ def get_config():
 class Common(WebsocketConsumer):
     def receive(self, text_data):
         request = json.loads(text_data)
-        response = getattr(self, request['type'])(request)
+        response = getattr(self, request['fn'])(request)
         if response is not None:
             self.send(text_data=json.dumps({
-                'type': request['type'],
+                'type': request['fn'],
                 'response': response
             }))
