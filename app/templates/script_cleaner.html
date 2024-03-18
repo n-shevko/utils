@@ -1,8 +1,81 @@
+{% verbatim %}
 <template v-if="config.current_tab === 'script_cleaner'">
+<div class="modal fade" id="selectVideo" tabindex="-1"  aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5">Select video</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+           <div id="jstree"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" @click.prevent="selectVideo">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row">
     <div class="col-12">
-
+        <template v-if="config.selected_video === null">
+            Video isn't selected
+        </template>
+        <template v-else>
+            Selected video: {{ config.selected_video }}
+        </template>
     </div>
-    <div class="col-3"></div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <button
+                type="button"
+                class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#selectVideo"
+        >
+          Select video
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <textarea class="form-control" rows="10" v-model="config.script_cleaner_prompt"></textarea>
+    </div>
+</div>
+
+<div class="row">
+    <label for="use_existing_files" class="form-check-label col-4">Use existing files</label>
+    <div class="col-1">
+        <input
+                class="form-check-input"
+                type="checkbox"
+                id="use_existing_files"
+                v-model="config.use_existing_files"
+        >
+    </div>
+</div>
+
+<div class="row">
+    <label for="percent_of_max_tokens_to_use_for_response" class="col-4 col-form-label">
+        Percent of LLM context to use for response
+    </label>
+    <div class="col-1">
+        <input  class="form-control form-control-sm"
+                type="number"
+                id="percent_of_max_tokens_to_use_for_response"
+                v-model="config.percent_of_max_tokens_to_use_for_response"
+        >
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <button type="button" class="btn btn-primary">Run</button>
+    </div>
 </div>
 </template>
+{% endverbatim %}

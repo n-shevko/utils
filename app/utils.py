@@ -12,6 +12,11 @@ def get_config():
 
 
 class Common(WebsocketConsumer):
+    def switch_tab(self, params):
+        config = get_config()
+        config.current_tab = params['name']
+        config.save()
+
     def receive(self, text_data):
         request = json.loads(text_data)
         response = getattr(self, request['fn'])(request)

@@ -1,6 +1,6 @@
 from django.urls import re_path
 
-from app.text_image_feedback_spiral import Worker
+from app.script_cleaner import Worker
 
 
 websocket_urlpatterns = [

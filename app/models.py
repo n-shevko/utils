@@ -4,11 +4,65 @@ from django.conf import settings
 
 
 class Config(models.Model):
+
+    chatgpt_api_key = models.CharField(
+        max_length=100,
+        verbose_name='Chatgpt api key',
+        default=""
+    )
+    chat_gpt_temperature = models.IntegerField(
+        verbose_name='temperature',
+        default=0
+    )
+    chat_gpt_top_p = models.IntegerField(
+        verbose_name='top_p',
+        default=1
+    )
+    chat_gpt_frequency_penalty = models.IntegerField(
+        verbose_name='frequency_penalty',
+        default=0
+    )
+    chat_gpt_presence_penalty = models.IntegerField(
+        verbose_name='presence_penalty',
+        default=0
+    )
+
+    # script_cleaner
+    selected_video = models.CharField(
+        max_length=3000,
+        verbose_name='Selected video',
+        default=''
+    )
+    script_cleaner_prompt = models.CharField(
+        max_length=100000,
+        verbose_name='Script cleaner prompt',
+        default='You will be provided with statements, and your task is to convert them to standard English.'
+    )
+    use_existing_files = models.BooleanField(
+        default=True,
+        verbose_name='Use existing files'
+    )
+    percent_of_max_tokens_to_use_for_response = models.IntegerField(
+        verbose_name='Percent of LLM context to use for response',
+        default=50
+    )
+
+
+
+    text_image_feedback_spiral_chat_gpt_max_tokens = models.IntegerField(
+        verbose_name='Text-image feedback spiral max_tokens',
+        default=1000
+    )
+
+
     current_tab = models.CharField(
         max_length=100,
         verbose_name='Current tab',
         default='text_image_feedback_spiral'
     )
+
+
+
 
     dall_e_prompt = models.CharField(
         max_length=100000,
@@ -36,31 +90,7 @@ class Config(models.Model):
         default=1
     )
 
-    chatgpt_api_key = models.CharField(
-        max_length=100,
-        verbose_name='Chatgpt api key',
-        default=""
-    )
-    chat_gpt_temperature = models.IntegerField(
-        verbose_name='temperature',
-        default=0
-    )
-    chat_gpt_top_p = models.IntegerField(
-        verbose_name='top_p',
-        default=1
-    )
-    chat_gpt_frequency_penalty = models.IntegerField(
-        verbose_name='frequency_penalty',
-        default=0
-    )
-    chat_gpt_presence_penalty = models.IntegerField(
-        verbose_name='presence_penalty',
-        default=0
-    )
-    chat_gpt_max_tokens = models.IntegerField(
-        verbose_name='presence_penalty',
-        default=1000
-    )
+
     suggest_changes_prompt = models.CharField(
         max_length=10000,
         verbose_name="'Suggest changes' prompt",
