@@ -4,7 +4,7 @@ from channels.generic.websocket import WebsocketConsumer
 from app.models import Config
 
 
-def get_config():
+def get_config() -> Config:
     config = Config.objects.first()
     if not config:
         config = Config().save()
