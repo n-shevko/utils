@@ -1,17 +1,33 @@
 {% verbatim %}
 <template v-if="config.current_tab === 'script_cleaner'">
-<div class="modal fade" id="selectVideo" tabindex="-1"  aria-hidden="true">
+<div class="modal fade" id="modal" tabindex="-1"  aria-hidden="true">
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
-        <h1 class="modal-title fs-5">Select video</h1>
+        <h1 class="modal-title fs-5">
+            {{ dialogTitle }}
+        </h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-           <div id="jstree"></div>
+          <template v-if="dialog === 'select_video'">
+              <div id="jstree"></div>
+          </template>
+          <template v-else-if="dialog === 'yes_no_dialog' || dialog === 'notify_dialog'">
+               <div v-html="msg"></div>
+          </template>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" @click.prevent="selectVideo">Done</button>
+          <template v-if="dialog === 'select_video'">
+              <button type="button" class="btn btn-primary" @click.prevent="selectVideo">Done</button>
+          </template>
+          <template v-else-if="dialog === 'yes_no_dialog'">
+              <button type="button" class="btn btn-primary" @click.prevent="dialogAnswer(false)">No</button>
+              <button type="button" class="btn btn-primary" @click.prevent="dialogAnswer(true)">Yes</button>
+          </template>
+          <template v-else-if="dialog === 'notify_dialog'">
+              <button type="button" class="btn btn-primary" @click.prevent="hideModal">Ok</button>
+          </template>
       </div>
     </div>
   </div>
@@ -35,8 +51,7 @@
                 <button
                         type="button"
                         class="btn btn-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#selectVideo"
+                        @click="openModal('select_video')"
                 >
                   Select video
                 </button>
@@ -76,14 +91,14 @@
 
         <div class="row my-2">
             <div class="col-12">
-                <button type="button" class="btn btn-primary">Run</button>
+                <button type="button" class="btn btn-primary" @click.prevent="script_cleaner_run">Run</button>
             </div>
         </div>
     </div>
 
 
     <div class="col-6">
-
+        <div v-html="gpt_answer"></div>
     </div>
 </div>
 

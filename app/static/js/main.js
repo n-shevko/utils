@@ -3,7 +3,14 @@ document.addEventListener('DOMContentLoaded', function() {
     el: '#app',
     data() {
       return Object.assign({
-          ws: null
+          ws: null,
+          dialogTitle: null,
+          dialog: null,
+          modal: null,
+          msg: null,
+          gpt_answer: null,
+          out_file: null,
+          progress: null
         },
         JSON.parse(document.getElementById('vue_data').textContent)
       );
@@ -22,7 +29,24 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     mounted: function () {
       let self = this;
-      document.getElementById('selectVideo').addEventListener('show.bs.modal', event => {
+      document.getElementById('modal').addEventListener('shown.bs.modal', event => {
+        let handler = self[`${self.dialog}_post`];
+        if (handler !== undefined) {
+          handler();
+        }
+      })
+    },
+    methods: {
+      initModal() {
+        this.modal = new bootstrap.Modal(document.getElementById('modal'));
+        this.modal.show();
+      },
+      openModal(val){
+        this.dialog = val;
+        this.initModal();
+      },
+      select_video_post() {
+        this.dialogTitle = 'Select video';
         $('#jstree').jstree({
           'core' : {
             'multiple' : false,
@@ -35,12 +59,28 @@ document.addEventListener('DOMContentLoaded', function() {
           },
           'plugins' : ['checkbox']
         });
+        let self = this;
         $('#jstree').on("changed.jstree", function (e, data) {
           self.config.selected_video = data.selected[0];
         });
-      })
-    },
-    methods: {
+      },
+      yes_no_dialog(args) {
+        this.dialogTitle = args.title;
+        this.msg = args.msg;
+        this.dialog = 'yes_no_dialog';
+        this.dialogResponse = args.response;
+        this.initModal();
+      },
+      notify_dialog(args) {
+        this.dialogTitle = args.title;
+        this.msg = args.msg;
+        this.dialog = 'notify_dialog';
+        this.initModal();
+      },
+      dialogAnswer(answer) {
+        this.dialogResponse['answer'] = answer
+        this.sendMessage(this.dialogResponse);
+      },
       switchTab(name) {
         this.sendMessage({fn: 'switch_tab', name: name});
         this.config.current_tab = name;
@@ -52,9 +92,24 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('WebSocket is not open. Unable to send message.');
         }
       },
+      update_gpt_answer(args) {
+        this.gpt_answer = args.answer;
+        this.out_file = args.out_file;
+        this.progress = args.progress;
+      },
+      hideModal() {
+        this.modal.hide();
+      },
       selectVideo() {
         $('#jstree').jstree(true).destroy();
-        $('#selectVideo').modal('hide');
+        this.modal.hide();
+      },
+      script_cleaner_run() {
+        this.sendMessage({fn: 'script_cleaner_run'})
+      },
+      onMessage(event) {
+        let request = JSON.parse(event.data);
+        this[request.fn](request);
       }
     }
   });

@@ -17,11 +17,11 @@ class Common(WebsocketConsumer):
         config.current_tab = params['name']
         config.save()
 
+    def send_msg(self, msg):
+        self.send(text_data=json.dumps(msg))
+
     def receive(self, text_data):
         request = json.loads(text_data)
         response = getattr(self, request['fn'])(request)
         if response is not None:
-            self.send(text_data=json.dumps({
-                'type': request['fn'],
-                'response': response
-            }))
+            self.send_msg(response)
