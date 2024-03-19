@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os.path
 from pathlib import Path
+import shutil
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -78,10 +79,12 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 volume = '/data'
-# if os.path.exists(volume):
-#     database_file = os.path.join(volume, 'db.sqlite3')
-# else:
 database_file = os.path.join(BASE_DIR, 'db.sqlite3')
+database_file_in_volume = os.path.join(volume, 'db.sqlite3')
+if os.path.exists(volume):
+    if os.path.exists(database_file) and not os.path.exists(database_file_in_volume):
+        shutil.move(database_file, volume)
+    database_file = database_file_in_volume
 
 DATABASES = {
     'default': {
