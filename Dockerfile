@@ -14,5 +14,6 @@ WORKDIR /
 RUN git clone https://github.com/n-shevko/utils.git
 WORKDIR utils
 RUN pip install -r packages
-#CMD python3 install.py && daphne project.asgi:application
+#RUN python3 manage.py migrate
+#CMD daphne -b 0.0.0.0 -p 8000 project.asgi:application
 CMD sleep 99999

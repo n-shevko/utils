@@ -1,5 +1,5 @@
 docker build -t utils_img .
 docker stop -t 0 utils_container && \
 docker rm utils_container && \
-docker run -d --name utils_container -v data:/data utils_img && \
+docker run -d --name utils_container -v data:/data -p 8001:8000 utils_img && \
 docker exec -it utils_container bash
