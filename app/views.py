@@ -12,10 +12,10 @@ def main(request):
     current_tab = KeyValue.objects.filter(key_field='current_tab').first()
     current_tab = current_tab.value if current_tab else 'script_cleaner'
     state = get_with_defaults(defaults.get(current_tab, {}))
+    state['current_tab'] = current_tab
     context = {
         'data': {
             'state': state,
-            'current_tab': current_tab,
             'menu': [
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
                 # {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
