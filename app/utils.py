@@ -1,27 +1,52 @@
 import json
+import aiomysql
+import asyncio
 
-from channels.generic.websocket import WebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
 from app.models import Config
 
 
-def get_config() -> Config:
+class db():
+    async def __aenter__(self):
+        self.conn = await aiomysql.connect(
+            host='127.0.0.1',
+            port=3306,
+            user='nikos',
+            password='123',
+            db='data'
+        )
+        self.cur = await self.conn.cursor(aiomysql.DictCursor)
+        return self.cur
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.cur.close()
+        await self.conn.commit()
+        self.conn.close()
+
+
+def get_config_sync() -> Config:
     config = Config.objects.first()
     if not config:
-        config = Config().save()
+        Config().save()
+        config = Config.objects.first()
     return config
 
 
-class Common(WebsocketConsumer):
-    def switch_tab(self, params):
-        config = get_config()
-        config.current_tab = params['name']
-        config.save()
+async def get_config():
+    async with db() as c:
+        await c.execute('select * from app_config')
+        ls = await c.fetchall()
+        return ls[0]
 
-    def send_msg(self, msg):
-        self.send(text_data=json.dumps(msg))
 
-    def receive(self, text_data):
+class Common(AsyncWebsocketConsumer):
+    async def switch_tab(self, params):
+        async with db() as c:
+            await c.execute('update app_config set current_tab = %s', (params['name'],))
+
+    async def send_msg(self, msg):
+        await self.send(text_data=json.dumps(msg))
+
+    async def receive(self, text_data):
         request = json.loads(text_data)
-        response = getattr(self, request['fn'])(request)
-        if response is not None:
-            self.send_msg(response)
+        asyncio.create_task(getattr(self, request['fn'])(request))

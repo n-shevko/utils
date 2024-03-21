@@ -105,6 +105,11 @@ class Config(models.Model):
         return 'Settings'
 
 
+class Task(models.Model):
+    type = models.CharField(max_length=100)  # script_cleaner, text_image_feedback_spiral
+    status = models.CharField(max_length=100)  # to_do, in_progress, done
+
+
 class Step(models.Model):
     dalle_request = models.CharField(
         max_length=100000,

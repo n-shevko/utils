@@ -34,6 +34,7 @@
 </div>
 
 <div class="row my-2">
+
     <div class="col-12">
         <template v-if="config.selected_video === null">
             Video isn't selected
@@ -45,62 +46,84 @@
 </div>
 
 <div class="row">
-    <div class="col-6">
-        <div class="row my-2">
-            <div class="col-12">
-                <button
-                        type="button"
-                        class="btn btn-primary"
-                        @click="openModal('select_video')"
-                >
-                  Select video
-                </button>
+    <div class="col-2"></div>
+    <div class="col-7">
+        <div class="card px-3 py-3">
+            <div class="row my-2">
+                <div class="col-12">
+                    <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="disableRun"
+                            @click="openModal('select_video')"
+                    >
+                      Select video
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <div class="row my-2">
-            <div class="col-12">
-                <textarea class="form-control" rows="10" v-model="config.script_cleaner_prompt"></textarea>
+            <div class="row my-2">
+                <div class="col-12">
+                    <textarea class="form-control" rows="10" v-model="config.script_cleaner_prompt" :disabled="disableRun"></textarea>
+                </div>
             </div>
-        </div>
 
-        <div class="row my-2">
-            <label for="use_existing_files" class="form-check-label col-4">Use existing files</label>
-            <div class="col-1">
-                <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="use_existing_files"
-                        v-model="config.use_existing_files"
-                >
+            <div class="row my-2">
+                <label for="use_existing_files" class="form-check-label col-4">Use existing files</label>
+                <div class="col-1">
+                    <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="use_existing_files"
+                            v-model="config.use_existing_files"
+                            :disabled="disableRun"
+                    >
+                </div>
             </div>
-        </div>
 
-        <div class="row my-2">
-            <label for="percent_of_max_tokens_to_use_for_response" class="col-8 col-form-label">
-                Percent of LLM context to use for response
-            </label>
-            <div class="col-2">
-                <input  class="form-control form-control-sm"
-                        type="number"
-                        id="percent_of_max_tokens_to_use_for_response"
-                        v-model="config.percent_of_max_tokens_to_use_for_response"
-                >
+            <div class="row my-2">
+                <label for="percent_of_max_tokens_to_use_for_response" class="col-8 col-form-label">
+                    Percent of LLM context to use for response
+                </label>
+                <div class="col-2">
+                    <input  class="form-control form-control-sm"
+                            type="number"
+                            id="percent_of_max_tokens_to_use_for_response"
+                            v-model="config.percent_of_max_tokens_to_use_for_response"
+                            :disabled="disableRun"
+                    >
+                </div>
             </div>
-        </div>
 
-        <div class="row my-2">
-            <div class="col-12">
-                <button type="button" class="btn btn-primary" @click.prevent="script_cleaner_run">Run</button>
+            <div class="row my-2">
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary" :disabled="disableRun" @click.prevent="script_cleaner_run">Run</button>
+                    <button type="button" class="btn btn-primary" v-if="disableRun" @click.prevent="stopScriptCleaner">Stop</button>
+                </div>
             </div>
         </div>
     </div>
-
-
-    <div class="col-6">
-        <div v-html="gpt_answer"></div>
-    </div>
+    <div class="col-3"></div>
 </div>
+    <div class="row my-3">
+        <div class="col-12">
+            <div class="card">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        {{ out_file || config.script_cleaner_last_out_file }}
+                        <button @click="copyResult" type="button" class="btn btn-outline-secondary float-end p-1" title="Copy text to clipboard">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+                                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"></path>
+                                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"></path>
+                            </svg>
+                        </button>
+                    </li>
+                </ul>
+                <div class="card-body" v-html="gpt_answer || config.script_cleaner_last_answer_gpt">
+                </div>
+            </div>
+        </div>
+    </div>
 
 </template>
 {% endverbatim %}

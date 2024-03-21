@@ -2,6 +2,7 @@ import os
 import shlex
 import re
 import time
+import asyncio
 
 from datetime import datetime
 
@@ -11,7 +12,7 @@ from openai import OpenAI
 from django.conf import settings
 
 
-from app.utils import Common, get_config
+from app.utils import Common, get_config, db
 from app.models import Config
 
 solution = "You can solve this problem by increasing 'Percent of LLM context to use for response'"
@@ -24,7 +25,7 @@ def text_only_path(path):
     return os.path.join(folder, filename + '_text_only' + ext)
 
 
-def get_text_only(path):
+async def get_text_only(path):
     with open(path, 'r') as f:
         text = f.read()
     result = re.split(r'\[[\d:.]+\s*-->\s*[\d:.]+\]', text)
@@ -47,7 +48,7 @@ def try_split(delimiter, text, tokens_for_request, encoding, config):
         request = []
         while offset < len(sentences):
             sentence = sentences[offset]
-            tmp = delimiter.join(request + [config.script_cleaner_prompt, sentence])
+            tmp = delimiter.join(request + [config['script_cleaner_prompt'], sentence])
             cnt = len(encoding.encode(tmp))
             if cnt <= tokens_for_request:
                 request.append(sentence)
@@ -60,15 +61,15 @@ def try_split(delimiter, text, tokens_for_request, encoding, config):
             break
 
         request = delimiter.join(request)
-        request_input_tokens = len(encoding.encode(request + config.script_cleaner_prompt))
+        request_input_tokens = len(encoding.encode(request + config['script_cleaner_prompt']))
         input_tokens += request_input_tokens
         out_tokens += (8192 - request_input_tokens - 100)
     return request_is_too_big, input_tokens, out_tokens
 
 
-def estimate_cost(text):
+async def estimate_cost(text):
     encoding = tiktoken.encoding_for_model("gpt-4")
-    config = get_config()
+    config = await get_config()
     tokens_for_request = get_tokens_for_request(config)
     point_attempt = try_split('.', text, tokens_for_request, encoding, config)
     space_attempt = try_split(' ', text, tokens_for_request, encoding, config)
@@ -102,11 +103,11 @@ def estimate_cost(text):
 
 def get_tokens_for_request(config):
     tokens_for_request_and_response = 8192
-    p = config.percent_of_max_tokens_to_use_for_response / 100
+    p = config['percent_of_max_tokens_to_use_for_response'] / 100
     return int(tokens_for_request_and_response * (1 - p))
 
 
-def call_chatgpt(config, client, user_mesage, out_file, tokens_for_response):
+async def call_chatgpt(config, client, user_mesage, out_file, tokens_for_response):
     # response = client.chat.completions.create(
     #     model="gpt-4",
     #     messages=[
@@ -137,42 +138,58 @@ def call_chatgpt(config, client, user_mesage, out_file, tokens_for_response):
     # else:
     #     out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
     out = 'abc'
-    time.sleep(0.5)
+    await asyncio.sleep(0.5)
     with open(out_file, 'a') as f:
         f.write(out)
     return False
 
 
-class Worker(Common):
-    def update_config(self, params):
-        Config.objects.all().update(**params['config'])
+async def update_config(**kwargs):
+    q = []
+    args = []
+    for k, v in kwargs.items():
+        if k == 'id':
+            continue
+        q.append(f"{k} = %s")
+        args.append(v)
+    q = ','.join(q)
+    async with db() as c:
+        res = await c.execute(f"update app_config set {q} where id=1", args)
+        b = 4
 
-    def run_chatgpt(self, params):
+
+class Worker(Common):
+    async def update_config(self, params):
+        await update_config(**params['config'])
+
+    async def run_chatgpt(self, params):
         if not params['answer']:
             return
 
-        config = get_config()
-        tmp, _ = os.path.splitext(config.selected_video)
+        config = await get_config()
+        tmp, _ = os.path.splitext(config['selected_video'])
         folder_path, file_name = os.path.split(tmp)
         formatted_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         with open(os.path.join(folder_path, file_name + '_text_only.txt'), 'r') as file:
-            text = file.read()
+            text = file.read() * 1000
 
         delimeter = params['args']
-        client = OpenAI(api_key=config.chatgpt_api_key)
+        client = OpenAI(api_key=config['chatgpt_api_key'])
         offset = 0
         sentences = text.split(delimeter)
         # sentences = sentences[0:2]
         stop = False
         out_file = os.path.join(folder_path, file_name + '_out_' + formatted_datetime + '.txt')
+        update_config(script_cleaner_last_out_file=out_file)
         encoding = tiktoken.encoding_for_model("gpt-4")
         tokens_for_request = get_tokens_for_request(config)
         tokens_for_request_and_response = 8192
+        await update_config(script_cleaner_stop=False)
         while offset < len(sentences):
             request = []
             while offset < len(sentences):
                 sentence = sentences[offset]
-                tmp = delimeter.join(request + [config.script_cleaner_prompt, sentence])
+                tmp = delimeter.join(request + [config['script_cleaner_prompt'], sentence])
                 cnt = len(encoding.encode(tmp))
                 if cnt <= tokens_for_request:
                     request.append(sentence)
@@ -182,17 +199,23 @@ class Worker(Common):
 
             request = delimeter.join(request)
             tokens_for_response = tokens_for_request_and_response - len(
-                encoding.encode(request + config.script_cleaner_prompt)) - 100
-            stop = call_chatgpt(config, client, request, out_file, tokens_for_response)
+                encoding.encode(request + config['script_cleaner_prompt'])) - 100
+            stop = await call_chatgpt(config, client, request, out_file, tokens_for_response)
             with open(out_file, 'r') as file:
                 content = file.read()
-                self.send_msg({
-                    'fn': 'update_gpt_answer',
-                    'answer': content,
-                    'out_file': out_file,
-                    'progress': ((offset + 1) / len(sentences)) * 100
-                })
+            await update_config(script_cleaner_last_answer_gpt=content)
+            await self.send_msg({
+                'fn': 'update_gpt_answer',
+                'answer': content,
+                'out_file': out_file,
+                'progress': ((offset + 1) / len(sentences)) * 100
+            })
+
             if stop:
+                break
+
+            config = await get_config()
+            if config['script_cleaner_stop']:
                 break
 
         if stop:
@@ -202,19 +225,20 @@ class Worker(Common):
         return {
             'fn': 'notify_dialog',
             'title': 'Notification',
+            'callback': 'unlockRun',
             'msg': msg
         }
 
-    def script_cleaner_run(self, _):
-        config = get_config()
-        folder_path, file_name = os.path.split(config.selected_video)
+    async def script_cleaner_run(self, _):
+        config = await get_config()
+        folder_path, file_name = os.path.split(config['selected_video'])
 
         base_name, _ = os.path.splitext(file_name)
         out_file = os.path.join(folder_path, base_name + '.wav')
         wav_exists = os.path.exists(out_file)
-        if not wav_exists or not config.use_existing_files:
+        if not wav_exists or not config['use_existing_files']:
             # progressbar['value'] = 5
-            response = os.system(f"ffmpeg -i {shlex.quote(config.selected_video)} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}")
+            response = os.system(f"ffmpeg -i {shlex.quote(config['selected_video'])} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}")
             if response != 0:
                 # notify("Audio extraction failed")
                 return
@@ -222,7 +246,7 @@ class Worker(Common):
 
         txt_file_path = os.path.join(folder_path, base_name + '.txt')
         txt_exists = os.path.exists(txt_file_path)
-        if not txt_exists or not config.use_existing_files:
+        if not txt_exists or not config['use_existing_files']:
             whisper = os.path.join(settings.WHISPER, 'main')
             model = os.path.join(settings.WHISPER, 'models/ggml-base.en.bin')
             response = os.system(f"{whisper} -m {model} -t {os.cpu_count() - 1} -f {shlex.quote(out_file)} > {shlex.quote(txt_file_path)}")
@@ -234,4 +258,4 @@ class Worker(Common):
                 get_text_only(txt_file_path)
 
         with open(text_only_path(txt_file_path), 'r') as file:
-            return estimate_cost(file.read())
+            await self.send_msg(await estimate_cost(file.read()))

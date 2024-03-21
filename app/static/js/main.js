@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
           msg: null,
           gpt_answer: null,
           out_file: null,
-          progress: null
+          progress: null,
+          disableRun: false
         },
         JSON.parse(document.getElementById('vue_data').textContent)
       );
@@ -75,11 +76,19 @@ document.addEventListener('DOMContentLoaded', function() {
         this.dialogTitle = args.title;
         this.msg = args.msg;
         this.dialog = 'notify_dialog';
+        if (args.callback !== undefined) {
+          this[args.callback](args);
+        }
         this.initModal();
       },
       dialogAnswer(answer) {
         this.dialogResponse['answer'] = answer
         this.sendMessage(this.dialogResponse);
+        this.modal.hide();
+        this.disableRun = answer;
+      },
+      unlockRun(_) {
+        this.disableRun = false;
       },
       switchTab(name) {
         this.sendMessage({fn: 'switch_tab', name: name});
@@ -97,6 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
         this.out_file = args.out_file;
         this.progress = args.progress;
       },
+      copyResult() {
+        navigator.clipboard.writeText(this.gpt_answer || this.config.script_cleaner_last_answer_gpt);
+      },
       hideModal() {
         this.modal.hide();
       },
@@ -105,11 +117,15 @@ document.addEventListener('DOMContentLoaded', function() {
         this.modal.hide();
       },
       script_cleaner_run() {
+        this.config.script_cleaner_stop = false;
         this.sendMessage({fn: 'script_cleaner_run'})
       },
       onMessage(event) {
         let request = JSON.parse(event.data);
         this[request.fn](request);
+      },
+      stopScriptCleaner() {
+        this.sendMessage({fn: 'update_config', config: {script_cleaner_stop: true}}); // why watch not work
       }
     }
   });
