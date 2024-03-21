@@ -1,4 +1,11 @@
 document.addEventListener('DOMContentLoaded', function() {
+  function createWatchers(state) {
+    let watchers = {};
+    Object.keys(newValue).forEach(key => {
+      watchers[key]
+    })
+  }
+
   var app = new Vue({
     el: '#app',
     data() {
@@ -11,15 +18,18 @@ document.addEventListener('DOMContentLoaded', function() {
           gpt_answer: null,
           out_file: null,
           progress: null,
-          disableRun: false
+          disableRun: false,
+          taskId: null
         },
         JSON.parse(document.getElementById('vue_data').textContent)
       );
     },
     watch: {
-      'config': {
+      'state': {
         handler(newValue, oldValue) {
-          this.sendMessage({fn: 'update_config', config: newValue});
+          Object.keys(newValue).forEach(key => {
+            this.sendMessage({fn: 'update',  key: key, value: newValue[key]});
+          });
         },
         deep: true
       }
@@ -62,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         let self = this;
         $('#jstree').on("changed.jstree", function (e, data) {
-          self.config.selected_video = data.selected[0];
+          self.state.selected_video = data.selected[0];
         });
       },
       yes_no_dialog(args) {
@@ -91,8 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this.disableRun = false;
       },
       switchTab(name) {
-        this.sendMessage({fn: 'switch_tab', name: name});
-        this.config.current_tab = name;
+        this.state.current_tab = name;
       },
       sendMessage(msg) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -107,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this.progress = args.progress;
       },
       copyResult() {
-        navigator.clipboard.writeText(this.gpt_answer || this.config.script_cleaner_last_answer_gpt);
+        navigator.clipboard.writeText(this.gpt_answer || this.state.script_cleaner_last_answer_gpt);
       },
       hideModal() {
         this.modal.hide();
@@ -117,7 +126,6 @@ document.addEventListener('DOMContentLoaded', function() {
         this.modal.hide();
       },
       script_cleaner_run() {
-        this.config.script_cleaner_stop = false;
         this.sendMessage({fn: 'script_cleaner_run'})
       },
       onMessage(event) {
@@ -125,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this[request.fn](request);
       },
       stopScriptCleaner() {
-        this.sendMessage({fn: 'update_config', config: {script_cleaner_stop: true}}); // why watch not work
+        this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
       }
     }
   });

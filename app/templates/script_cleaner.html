@@ -1,5 +1,5 @@
 {% verbatim %}
-<template v-if="config.current_tab === 'script_cleaner'">
+<template v-if="current_tab === 'script_cleaner'">
 <div class="modal fade" id="modal" tabindex="-1"  aria-hidden="true">
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
@@ -36,11 +36,11 @@
 <div class="row my-2">
 
     <div class="col-12">
-        <template v-if="config.selected_video === null">
+        <template v-if="state.selected_video === null">
             Video isn't selected
         </template>
         <template v-else>
-            Selected video: {{ config.selected_video }}
+            Selected video: {{ state.selected_video }}
         </template>
     </div>
 </div>
@@ -64,7 +64,7 @@
 
             <div class="row my-2">
                 <div class="col-12">
-                    <textarea class="form-control" rows="10" v-model="config.script_cleaner_prompt" :disabled="disableRun"></textarea>
+                    <textarea class="form-control" rows="10" v-model="state.script_cleaner_prompt" :disabled="disableRun"></textarea>
                 </div>
             </div>
 
@@ -75,7 +75,9 @@
                             class="form-check-input"
                             type="checkbox"
                             id="use_existing_files"
-                            v-model="config.use_existing_files"
+                            v-model="state.use_existing_files"
+                            :true-value="'1'"
+                            :false-value="'0'"
                             :disabled="disableRun"
                     >
                 </div>
@@ -89,7 +91,7 @@
                     <input  class="form-control form-control-sm"
                             type="number"
                             id="percent_of_max_tokens_to_use_for_response"
-                            v-model="config.percent_of_max_tokens_to_use_for_response"
+                            v-model="state.percent_of_max_tokens_to_use_for_response"
                             :disabled="disableRun"
                     >
                 </div>
@@ -110,7 +112,7 @@
             <div class="card">
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item">
-                        {{ out_file || config.script_cleaner_last_out_file }}
+                        {{ out_file || state.script_cleaner_last_out_file }}
                         <button @click="copyResult" type="button" class="btn btn-outline-secondary float-end p-1" title="Copy text to clipboard">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
                                 <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"></path>
@@ -119,7 +121,7 @@
                         </button>
                     </li>
                 </ul>
-                <div class="card-body" v-html="gpt_answer || config.script_cleaner_last_answer_gpt">
+                <div class="card-body" v-html="gpt_answer || state.script_cleaner_last_answer_gpt">
                 </div>
             </div>
         </div>
