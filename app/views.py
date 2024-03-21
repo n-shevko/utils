@@ -18,7 +18,7 @@ def main(request):
             'state': state,
             'menu': [
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
-                # {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
+                {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
                 {'name': 'settings', 'label': 'Settings'}
             ]
         }
