@@ -26,7 +26,7 @@ def text_only_path(path):
     return os.path.join(folder, filename + '_text_only' + ext)
 
 
-async def get_text_only(path):
+def get_text_only(path):
     with open(path, 'r') as f:
         text = f.read()
     result = re.split(r'\[[\d:.]+\s*-->\s*[\d:.]+\]', text)
@@ -85,13 +85,15 @@ async def estimate_cost(text):
         out_tokens = choice[2]
         cost = round(((input_tokens / 1000) * 0.03) + ((out_tokens / 1000) * 0.06), 1)
         return {
-            'fn': 'yes_no_dialog',
-            'title': 'Cost estimation',
-            'msg': f"Processing by ChatGPT will use <br>{input_tokens} input tokens<br>{out_tokens} output tokens<br>total cost approximately {cost} $<br><br>Dou you want to continue?",
-            'response': {
-                'fn': 'run_chatgpt',
-                'args': delimeter
-            }
+            'fn': 'update',
+            'value': {
+                'dialogTitle': 'Cost estimation',
+                'msg': f"Processing by ChatGPT will use <br>{input_tokens} input tokens<br>{out_tokens} output tokens<br>total cost approximately {cost} $<br><br>Dou you want to continue?",
+                'dialog': 'yes_no_dialog',
+                'delimeter': delimeter,
+                'dialogCallback': 'runChatgpt'
+            },
+            'callback': 'initModal'
         }
     else:
         return {
@@ -158,19 +160,30 @@ class Worker(Common):
         with open(os.path.join(folder_path, file_name + '_text_only.txt'), 'r') as file:
             text = file.read() * 1000
 
-        delimeter = params['args']
+        delimeter = params['delimeter']
         config = await get_config()
         client = OpenAI(api_key=config['chatgpt_api_key'])
         offset = 0
         sentences = text.split(delimeter)
         # sentences = sentences[0:2]
         stop = False
+
         out_file = os.path.join(folder_path, file_name + '_out_' + formatted_datetime + '.txt')
         await update('script_cleaner_last_out_file', out_file)
+
+        task_id = str(uuid4())
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'out_file': out_file,
+                'taskId': task_id
+            }
+        })
+
         encoding = tiktoken.encoding_for_model("gpt-4")
         tokens_for_request = await get_tokens_for_request()
         tokens_for_request_and_response = 8192
-        task_id = str(uuid4())
+
         script_cleaner_prompt = await get('script_cleaner_prompt')
         while offset < len(sentences):
             request = []
@@ -199,11 +212,11 @@ class Worker(Common):
                 content = file.read()
             await update('script_cleaner_last_answer_gpt', content)
             await self.send_msg({
-                'fn': 'update_gpt_answer',
-                'answer': content,
-                'task_id': task_id,
-                'out_file': out_file,
-                'progress': round(((offset + 1) / len(sentences)) * 100)
+                'fn': 'update',
+                'value': {
+                    'gpt_answer': content,
+                    'progress': round(((offset + 1) / len(sentences)) * 100)
+                }
             })
 
             if stop:
@@ -231,7 +244,13 @@ class Worker(Common):
         wav_exists = os.path.exists(out_file)
         use_existing_files = await get('use_existing_files')
         if not wav_exists or use_existing_files != '1':
-            # progressbar['value'] = 5
+            await self.send_msg({
+                'fn': 'update',
+                'value': {
+                    'progress': 5,
+                    'progressMsg': 'Extracting audio from video'
+                }
+            })
             response = await asyncio.create_subprocess_shell(
                 f"ffmpeg -i {shlex.quote(selected_video)} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}"
             )
@@ -243,19 +262,35 @@ class Worker(Common):
                 })
                 return
 
-        #progressbar['value'] = 10
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'progress': 10
+            }
+        })
 
         txt_file_path = os.path.join(folder_path, base_name + '.txt')
         txt_exists = os.path.exists(txt_file_path)
         if not txt_exists or use_existing_files != '1':
             whisper = os.path.join(settings.WHISPER, 'main')
             model = os.path.join(settings.WHISPER, 'models/ggml-base.en.bin')
-            response = os.system(f"{whisper} -m {model} -t {os.cpu_count() - 1} -f {shlex.quote(out_file)} > {shlex.quote(txt_file_path)}")
-
+            response = await asyncio.create_subprocess_shell(
+                f"{whisper} -m {model} -t {os.cpu_count() - 1} -f {shlex.quote(out_file)} > {shlex.quote(txt_file_path)}"
+            )
             if response != 0:
-                #notify("Extracting text from audio failed")
+                await self.send_msg({
+                    'fn': 'notify_dialog',
+                    'title': 'Notification',
+                    'msg': 'Extracting text from audio failed'
+                })
                 return
             else:
+                await self.send_msg({
+                    'fn': 'update',
+                    'value': {
+                        'progress': 15
+                    }
+                })
                 get_text_only(txt_file_path)
 
         with open(text_only_path(txt_file_path), 'r') as file:

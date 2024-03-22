@@ -44,9 +44,12 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     methods: {
       update(args) {
-         Object.keys(args.value).forEach(key => {
-           this.$set(this, key, args.value[key]);
-         });
+        Object.keys(args.value).forEach(key => {
+          this[key] = args.value[key];
+        });
+        if (args.callback !== undefined) {
+          this[args.callback]();
+        }
       },
       initModal() {
         this.modal = new bootstrap.Modal(document.getElementById('modal'));
@@ -75,13 +78,6 @@ document.addEventListener('DOMContentLoaded', function() {
           self.state.selected_video = data.selected[0];
         });
       },
-      yes_no_dialog(args) {
-        this.dialogTitle = args.title;
-        this.msg = args.msg;
-        this.dialog = 'yes_no_dialog';
-        this.dialogResponse = args.response;
-        this.initModal();
-      },
       notify_dialog(args) {
         this.dialogTitle = args.title;
         this.msg = args.msg;
@@ -92,10 +88,14 @@ document.addEventListener('DOMContentLoaded', function() {
         this.initModal();
       },
       dialogAnswer(answer) {
-        this.dialogResponse['answer'] = answer
-        this.sendMessage(this.dialogResponse);
+        this[this.dialogCallback](answer)
+      },
+      runChatgpt(answer) {
+        if (answer) {
+          this.sendMessage({fn: 'run_chatgpt', answer: true, delimeter: this.delimeter});
+          this.inProgress = true;
+        }
         this.modal.hide();
-        this.inProgress = answer;
       },
       unlockRun(_) {
         this.inProgress = false;
@@ -111,12 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
           console.error('WebSocket is not open. Unable to send message.');
         }
-      },
-      update_gpt_answer(args) {
-        this.gpt_answer = args.answer;
-        this.out_file = args.out_file;
-        this.progress = args.progress;
-        this.taskId = args.task_id;
       },
       copyResult() {
         navigator.clipboard.writeText(this.gpt_answer || this.state.script_cleaner_last_answer_gpt);
