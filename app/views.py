@@ -12,6 +12,7 @@ def main(request):
     current_tab = KeyValue.objects.filter(key_field='current_tab').first()
     current_tab = current_tab.value if current_tab else 'script_cleaner'
     state = get_with_defaults(defaults.get(current_tab, {}))
+    state.update(defaults.get('text_image_feedback_spiral', {}))
     state['current_tab'] = current_tab
     context = {
         'data': {
@@ -37,7 +38,7 @@ def files(request):
         full_path = os.path.join(path, item)
         if os.path.isdir(full_path):
             response.append(
-                {"id": full_path,  "parent": id, "text": item, "children": True}
+                {"id": full_path, "parent": id, "text": item, "children": True}
             )
         else:
             response.append(

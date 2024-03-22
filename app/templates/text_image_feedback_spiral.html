@@ -3,14 +3,23 @@
 
 
 <div class="row">
-    <div class="col-12">
+    <div class="col-4">
         <textarea class="form-control" rows="10" v-model="state.dall_e_prompt"></textarea>
+    </div>
+    <div class="col-4">
+        <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
+            for image_1
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
+            for image_2
+        </div>
     </div>
 </div>
 
-
 <div class="row">
-    <div class="col-12">
+    <div class="col-4">
         <textarea class="form-control" rows="10" v-model="state.suggest_changes_prompt"></textarea>
     </div>
 </div>
@@ -24,19 +33,7 @@
                 type="number"
                 id="text_image_feedback_spiral_chat_gpt_max_tokens"
                 v-model="state.text_image_feedback_spiral_chat_gpt_max_tokens"
-        >
-    </div>
-</div>
-
-<div class="row">
-    <label for="dall_e_model" class="col-4 col-form-label">
-        DALL-E model
-    </label>
-    <div class="col-1">
-        <input  class="form-control form-control-sm"
-                type="text"
-                id="dall_e_model"
-                v-model="state.dall_e_model"
+                :disabled="disableRun"
         >
     </div>
 </div>
@@ -65,23 +62,9 @@
 </div>
 
 <div class="row">
-    <label for="dall_e_n" class="col-4 col-form-label">
-        DALL-E n
-    </label>
-    <div class="col-1">
-        <input  class="form-control form-control-sm"
-                type="number"
-                id="dall_e_n"
-                v-model="state.dall_e_n"
-        >
-    </div>
-</div>
-
-<div class="row">
     <div class="col-12">
        <button type="button" class="btn btn-primary" @click.prevent="run_2">Run</button>
     </div>
 </div>
 </template>
-
 {% endverbatim %}
