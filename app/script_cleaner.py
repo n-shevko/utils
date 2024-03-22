@@ -1,17 +1,17 @@
 import os
 import shlex
 import re
+import json
 
 import asyncio
-from uuid import uuid4
+import aiohttp
+import tiktoken
 
+from uuid import uuid4
 from datetime import datetime
 
-import tiktoken
 from openai import OpenAI
-
 from django.conf import settings
-
 
 from app.utils import Common, get_config, get, update
 
@@ -77,36 +77,41 @@ async def get_tokens_for_request():
     return int(tokens_for_request_and_response * (1 - p))
 
 
-async def call_chatgpt(config, client, user_mesage, out_file, tokens_for_response, script_cleaner_prompt):
-    # response = client.chat.completions.create(
-    #     model="gpt-4",
-    #     messages=[
-    #         {
-    #             "role": "system",
-    #             "content": script_cleaner_prompt
-    #         },
-    #         {
-    #             "role": "user",
-    #             "content": user_mesage
-    #         }
-    #     ],
-    #     temperature=config['chat_gpt_temperature'],
-    #     max_tokens=tokens_for_response,  # desired response size
-    #     top_p=config['chat_gpt_top_p'],
-    #     frequency_penalty=config['chat_gpt_frequency_penalty'],
-    #     presence_penalty=config['chat_gpt_presence_penalty']
-    # )
-    # while response.choices[0].finish_reason == 'null':
-    #     await asyncio.sleep(1)
-    #
-    # if response.choices[0].finish_reason == 'length':
-    #     #notify("finish_reason == 'length'\n" + solution)
-    #     return True
-    #
-    # if response.choices[0].finish_reason == 'stop':
-    #     out = response.choices[0].message.content
-    # else:
-    #     out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
+async def call_chatgpt(config, user_message, out_file, tokens_for_response, script_cleaner_prompt):
+    headers = {
+        'Authorization': f'Bearer {config["openai_api_key"]}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        "model": "gpt-4",
+        "messages": [
+            {"role": "system", "content": script_cleaner_prompt},
+            {"role": "user", "content": user_message}
+        ],
+        "temperature": config['chat_gpt_temperature'],
+        "max_tokens": tokens_for_response,
+        "top_p": config['chat_gpt_top_p'],
+        "frequency_penalty": config['chat_gpt_frequency_penalty'],
+        "presence_penalty": config['chat_gpt_presence_penalty']
+    }
+
+    for attempt in range(3):
+        async with aiohttp.ClientSession() as session:
+            async with session.post('https://api.openai.com/v1/completions', headers=headers, data=json.dumps(payload)) as response:
+                if response.status == 200:
+                    response = await response.json()
+                    break
+                else:
+                    return {"error": "Failed to fetch response from OpenAI"}
+
+    if response.choices[0].finish_reason == 'length':
+        #notify("finish_reason == 'length'\n" + solution)
+        return True
+
+    if response.choices[0].finish_reason == 'stop':
+        out = response.choices[0].message.content
+    else:
+        out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
     out = 'abc'
     await asyncio.sleep(0.5)
     with open(out_file, 'a') as f:
@@ -128,7 +133,6 @@ class Worker(Common):
 
         delimeter = params['delimeter']
         config = await get_config()
-        client = OpenAI(api_key=config['chatgpt_api_key'])
         offset = 0
         sentences = text.split(delimeter)
         # sentences = sentences[0:2]
@@ -168,7 +172,6 @@ class Worker(Common):
                 encoding.encode(request + script_cleaner_prompt)) - 100
             stop = await call_chatgpt(
                 config,
-                client,
                 request,
                 out_file,
                 tokens_for_response,
@@ -246,10 +249,11 @@ class Worker(Common):
                     'progressMsg': 'Extracting audio from video'
                 }
             })
-            response = await asyncio.create_subprocess_shell(
+            process = await asyncio.create_subprocess_shell(
                 f"ffmpeg -i {shlex.quote(selected_video)} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}"
             )
-            if response != 0:
+            await process.communicate()
+            if process.returncode != 0:
                 await self.notify('Audio extraction failed')
                 return
 
@@ -265,10 +269,11 @@ class Worker(Common):
         if not txt_exists or use_existing_files != '1':
             whisper = os.path.join(settings.WHISPER, 'main')
             model = os.path.join(settings.WHISPER, 'models/ggml-base.en.bin')
-            response = await asyncio.create_subprocess_shell(
+            process = await asyncio.create_subprocess_shell(
                 f"{whisper} -m {model} -t {os.cpu_count() - 1} -f {shlex.quote(out_file)} > {shlex.quote(txt_file_path)}"
             )
-            if response != 0:
+            await process.communicate()
+            if process.returncode != 0:
                 await self.notify('Extracting text from audio failed')
                 return
             else:
