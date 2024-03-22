@@ -68,40 +68,6 @@ def try_split(delimiter, text, tokens_for_request, encoding, script_cleaner_prom
     return request_is_too_big, input_tokens, out_tokens
 
 
-async def estimate_cost(text):
-    encoding = tiktoken.encoding_for_model("gpt-4")
-    tokens_for_request = await get_tokens_for_request()
-    script_cleaner_prompt = await get('script_cleaner_prompt')
-    point_attempt = try_split('.', text, tokens_for_request, encoding, script_cleaner_prompt)
-    space_attempt = try_split(' ', text, tokens_for_request, encoding, script_cleaner_prompt)
-    if (not point_attempt[0]) or (not space_attempt[0]):
-        if not point_attempt[0]:
-            choice = point_attempt
-            delimeter = '.'
-        elif not space_attempt[0]:
-            choice = space_attempt
-            delimeter = ' '
-        input_tokens = choice[1]
-        out_tokens = choice[2]
-        cost = round(((input_tokens / 1000) * 0.03) + ((out_tokens / 1000) * 0.06), 1)
-        return {
-            'fn': 'update',
-            'value': {
-                'dialogTitle': 'Cost estimation',
-                'msg': f"Processing by ChatGPT will use <br>{input_tokens} input tokens<br>{out_tokens} output tokens<br>total cost approximately {cost} $<br><br>Dou you want to continue?",
-                'dialog': 'yes_no_dialog',
-                'delimeter': delimeter,
-                'dialogCallback': 'runChatgpt'
-            },
-            'callback': 'initModal'
-        }
-    else:
-        return {
-            'fn': 'notify_dialog',
-            'title': 'Notification',
-            'msg': f"Can't create request for an sentence. The sentence is too big.<br>" +
-               "You may solve this problem by reducing 'Percent of LLM context to use for response'. If it doesn't help then mail to nicksheuko@gmail.com"
-        }
 
 
 async def get_tokens_for_request():
@@ -228,12 +194,41 @@ class Worker(Common):
             msg = f"Not complete result in file {out_file}<br>{solution}"
         else:
             msg = f"Done. Result in file {out_file}"
-        await self.send_msg({
-            'fn': 'notify_dialog',
-            'title': 'Notification',
-            'callback': 'unlockRun',
-            'msg': msg
-        })
+        await self.notify(msg)
+
+    async def estimate_cost(self, text):
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        tokens_for_request = await get_tokens_for_request()
+        script_cleaner_prompt = await get('script_cleaner_prompt')
+        point_attempt = try_split('.', text, tokens_for_request, encoding, script_cleaner_prompt)
+        space_attempt = try_split(' ', text, tokens_for_request, encoding, script_cleaner_prompt)
+        if (not point_attempt[0]) or (not space_attempt[0]):
+            if not point_attempt[0]:
+                choice = point_attempt
+                delimeter = '.'
+            elif not space_attempt[0]:
+                choice = space_attempt
+                delimeter = ' '
+            input_tokens = choice[1]
+            out_tokens = choice[2]
+            cost = round(((input_tokens / 1000) * 0.03) + ((out_tokens / 1000) * 0.06), 1)
+            await self.send_msg(
+                {
+                    'fn': 'update',
+                    'value': {
+                        'dialogTitle': 'Cost estimation',
+                        'msg': f"Processing by ChatGPT will use <br>{input_tokens} input tokens<br>{out_tokens} output tokens<br>total cost approximately {cost} $<br><br>Dou you want to continue?",
+                        'dialog': 'yes_no_dialog',
+                        'delimeter': delimeter,
+                        'dialogCallback': 'runChatgpt'
+                    },
+                    'callback': 'initModal'
+                }
+            )
+        else:
+            await self.notify(
+                f"Can't create request for an sentence. The sentence is too big.<br>You may solve this problem by reducing 'Percent of LLM context to use for response'. If it doesn't help then mail to nicksheuko@gmail.com"
+            )
 
     async def script_cleaner_run(self, _):
         selected_video = await get('selected_video')
@@ -255,11 +250,7 @@ class Worker(Common):
                 f"ffmpeg -i {shlex.quote(selected_video)} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}"
             )
             if response != 0:
-                await self.send_msg({
-                    'fn': 'notify_dialog',
-                    'title': 'Notification',
-                    'msg': 'Audio extraction failed'
-                })
+                await self.notify('Audio extraction failed')
                 return
 
         await self.send_msg({
@@ -278,11 +269,7 @@ class Worker(Common):
                 f"{whisper} -m {model} -t {os.cpu_count() - 1} -f {shlex.quote(out_file)} > {shlex.quote(txt_file_path)}"
             )
             if response != 0:
-                await self.send_msg({
-                    'fn': 'notify_dialog',
-                    'title': 'Notification',
-                    'msg': 'Extracting text from audio failed'
-                })
+                await self.notify('Extracting text from audio failed')
                 return
             else:
                 await self.send_msg({
@@ -294,4 +281,4 @@ class Worker(Common):
                 get_text_only(txt_file_path)
 
         with open(text_only_path(txt_file_path), 'r') as file:
-            await self.send_msg(await estimate_cost(file.read()))
+            await self.estimate_cost(file.read())

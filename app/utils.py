@@ -107,6 +107,17 @@ class Common(AsyncWebsocketConsumer):
             'value': {'state': await get(keys)}
         })
 
+    async def notify(self, msg):
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'dialog': 'notify_dialog',
+                'dialogTitle': 'Notification',
+                'msg': msg
+            },
+            'callback': 'initModal'
+        })
+
     async def receive(self, text_data):
         request = json.loads(text_data)
         # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task

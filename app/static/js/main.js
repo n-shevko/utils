@@ -78,15 +78,6 @@ document.addEventListener('DOMContentLoaded', function() {
           self.state.selected_video = data.selected[0];
         });
       },
-      notify_dialog(args) {
-        this.dialogTitle = args.title;
-        this.msg = args.msg;
-        this.dialog = 'notify_dialog';
-        if (args.callback !== undefined) {
-          this[args.callback](args);
-        }
-        this.initModal();
-      },
       dialogAnswer(answer) {
         this[this.dialogCallback](answer)
       },
@@ -97,8 +88,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         this.modal.hide();
       },
-      unlockRun(_) {
+      unlockRun() {
         this.inProgress = false;
+        this.modal.hide();
       },
       switchTab(name) {
         this.sendMessage({fn: 'update', key: 'current_tab', value: name});
