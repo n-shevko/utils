@@ -1,12 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-  function createWatchers(state) {
-    let watchers = {};
-    Object.keys(newValue).forEach(key => {
-      watchers[key]
-    })
-  }
-
-  var app = new Vue({
+  new Vue({
     el: '#app',
     data() {
       return Object.assign({
@@ -17,8 +10,10 @@ document.addEventListener('DOMContentLoaded', function() {
           msg: null,
           gpt_answer: null,
           out_file: null,
-          progress: null,
-          disableRun: false,
+          current_tab: null,
+          progress: 0,
+          progressMsg: null,
+          inProgress: false,
           taskId: null
         },
         JSON.parse(document.getElementById('vue_data').textContent)
@@ -48,6 +43,11 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     },
     methods: {
+      update(args) {
+         Object.keys(args.value).forEach(key => {
+           this.$set(this, key, args.value[key]);
+         });
+      },
       initModal() {
         this.modal = new bootstrap.Modal(document.getElementById('modal'));
         this.modal.show();
@@ -95,13 +95,15 @@ document.addEventListener('DOMContentLoaded', function() {
         this.dialogResponse['answer'] = answer
         this.sendMessage(this.dialogResponse);
         this.modal.hide();
-        this.disableRun = answer;
+        this.inProgress = answer;
       },
       unlockRun(_) {
-        this.disableRun = false;
+        this.inProgress = false;
       },
       switchTab(name) {
-        this.state.current_tab = name;
+        this.sendMessage({fn: 'update', key: 'current_tab', value: name});
+        this.current_tab = name;
+        this.sendMessage({fn: 'get_state', current_tab: name});
       },
       sendMessage(msg) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -135,6 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       stopScriptCleaner() {
         this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
+        this.inProgress = false;
       }
     }
   });

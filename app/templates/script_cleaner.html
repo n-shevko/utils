@@ -1,38 +1,5 @@
 {% verbatim %}
-<template v-if="state.current_tab === 'script_cleaner'">
-<div class="modal fade" id="modal" tabindex="-1"  aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h1 class="modal-title fs-5">
-            {{ dialogTitle }}
-        </h1>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-          <template v-if="dialog === 'select_video'">
-              <div id="jstree"></div>
-          </template>
-          <template v-else-if="dialog === 'yes_no_dialog' || dialog === 'notify_dialog'">
-               <div v-html="msg"></div>
-          </template>
-      </div>
-      <div class="modal-footer">
-          <template v-if="dialog === 'select_video'">
-              <button type="button" class="btn btn-primary" @click.prevent="selectVideo">Done</button>
-          </template>
-          <template v-else-if="dialog === 'yes_no_dialog'">
-              <button type="button" class="btn btn-primary" @click.prevent="dialogAnswer(false)">No</button>
-              <button type="button" class="btn btn-primary" @click.prevent="dialogAnswer(true)">Yes</button>
-          </template>
-          <template v-else-if="dialog === 'notify_dialog'">
-              <button type="button" class="btn btn-primary" @click.prevent="hideModal">Ok</button>
-          </template>
-      </div>
-    </div>
-  </div>
-</div>
-
+<template v-if="current_tab === 'script_cleaner'">
 <div class="row my-2">
 
     <div class="col-12">
@@ -54,7 +21,7 @@
                     <button
                             type="button"
                             class="btn btn-primary"
-                            :disabled="disableRun"
+                            :disabled="inProgress"
                             @click="openModal('select_video')"
                     >
                       Select video
@@ -64,7 +31,7 @@
 
             <div class="row my-2">
                 <div class="col-12">
-                    <textarea class="form-control" rows="10" v-model="state.script_cleaner_prompt" :disabled="disableRun"></textarea>
+                    <textarea class="form-control" rows="10" v-model="state.script_cleaner_prompt" :disabled="inProgress"></textarea>
                 </div>
             </div>
 
@@ -78,7 +45,7 @@
                             v-model="state.use_existing_files"
                             :true-value="'1'"
                             :false-value="'0'"
-                            :disabled="disableRun"
+                            :disabled="inProgress"
                     >
                 </div>
             </div>
@@ -92,15 +59,15 @@
                             type="number"
                             id="percent_of_max_tokens_to_use_for_response"
                             v-model="state.percent_of_max_tokens_to_use_for_response"
-                            :disabled="disableRun"
+                            :disabled="inProgress"
                     >
                 </div>
             </div>
 
             <div class="row my-2">
                 <div class="col-12">
-                    <button type="button" class="btn btn-primary" :disabled="disableRun" @click.prevent="script_cleaner_run">Run</button>
-                    <button type="button" class="btn btn-primary" v-if="disableRun" @click.prevent="stopScriptCleaner">Stop</button>
+                    <button type="button" class="btn btn-primary" :disabled="inProgress" @click.prevent="script_cleaner_run">Run</button>
+                    <button type="button" class="btn btn-primary" v-if="inProgress" @click.prevent="stopScriptCleaner">Stop</button>
                 </div>
             </div>
         </div>
@@ -111,6 +78,18 @@
         <div class="col-12">
             <div class="card">
                 <ul class="list-group list-group-flush">
+                    <li class="list-group-item" v-if="inProgress">
+                        <div class="progress">
+                            <div class="progress-bar"
+                                 role="progressbar"
+                                 :style="{ width: progress + '%' }"
+                                 :aria-valuenow="progress"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                {{progress}}%
+                            </div>
+                        </div>
+                    </li>
                     <li class="list-group-item">
                         {{ out_file || state.script_cleaner_last_out_file }}
                         <button @click="copyResult" type="button" class="btn btn-outline-secondary float-end p-1" title="Copy text to clipboard">
@@ -126,6 +105,5 @@
             </div>
         </div>
     </div>
-
 </template>
 {% endverbatim %}

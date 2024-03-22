@@ -24,10 +24,11 @@
     {% verbatim %}
     <ul class="nav nav-tabs pe-0">
         <li class="nav-item" v-for="item in menu">
-            <a :class="['nav-link', { 'active': item.name === state.current_tab }]" @click.prevent.stop="switchTab(item.name)">{{ item.label }}</a>
+            <a :class="['nav-link', { 'active': item.name === current_tab }]" @click.prevent.stop="switchTab(item.name)">{{ item.label }}</a>
         </li>
     </ul>
     {% endverbatim %}
+    {% include 'modal.html' %}
     {% include 'script_cleaner.html' %}
     {% include 'text_image_feedback_spiral.html' %}
     {% include 'settings.html' %}

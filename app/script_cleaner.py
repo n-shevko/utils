@@ -13,8 +13,8 @@ from openai import OpenAI
 from django.conf import settings
 
 
-from app.utils import Common, get_config, db, get, update
-from app.models import Config
+from app.utils import Common, get_config, get, update
+
 
 solution = "You can solve this problem by increasing 'Percent of LLM context to use for response'"
 
@@ -109,27 +109,27 @@ async def get_tokens_for_request():
     return int(tokens_for_request_and_response * (1 - p))
 
 
-async def call_chatgpt(config, client, user_mesage, out_file, tokens_for_response):
+async def call_chatgpt(config, client, user_mesage, out_file, tokens_for_response, script_cleaner_prompt):
     # response = client.chat.completions.create(
     #     model="gpt-4",
     #     messages=[
     #         {
     #             "role": "system",
-    #             "content": config.script_cleaner_prompt
+    #             "content": script_cleaner_prompt
     #         },
     #         {
     #             "role": "user",
     #             "content": user_mesage
     #         }
     #     ],
-    #     temperature=config.chat_gpt_temperature,
+    #     temperature=config['chat_gpt_temperature'],
     #     max_tokens=tokens_for_response,  # desired response size
-    #     top_p=config.chat_gpt_top_p,
-    #     frequency_penalty=config.chat_gpt_frequency_penalty,
-    #     presence_penalty=config.chat_gpt_presence_penalty
+    #     top_p=config['chat_gpt_top_p'],
+    #     frequency_penalty=config['chat_gpt_frequency_penalty'],
+    #     presence_penalty=config['chat_gpt_presence_penalty']
     # )
     # while response.choices[0].finish_reason == 'null':
-    #     time.sleep(1)
+    #     await asyncio.sleep(1)
     #
     # if response.choices[0].finish_reason == 'length':
     #     #notify("finish_reason == 'length'\n" + solution)
@@ -187,7 +187,14 @@ class Worker(Common):
             request = delimeter.join(request)
             tokens_for_response = tokens_for_request_and_response - len(
                 encoding.encode(request + script_cleaner_prompt)) - 100
-            stop = await call_chatgpt(config, client, request, out_file, tokens_for_response)
+            stop = await call_chatgpt(
+                config,
+                client,
+                request,
+                out_file,
+                tokens_for_response,
+                script_cleaner_prompt
+            )
             with open(out_file, 'r') as file:
                 content = file.read()
             await update('script_cleaner_last_answer_gpt', content)
@@ -196,7 +203,7 @@ class Worker(Common):
                 'answer': content,
                 'task_id': task_id,
                 'out_file': out_file,
-                'progress': ((offset + 1) / len(sentences)) * 100
+                'progress': round(((offset + 1) / len(sentences)) * 100)
             })
 
             if stop:
@@ -225,10 +232,17 @@ class Worker(Common):
         use_existing_files = await get('use_existing_files')
         if not wav_exists or use_existing_files != '1':
             # progressbar['value'] = 5
-            response = os.system(f"ffmpeg -i {shlex.quote(selected_video)} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}")
+            response = await asyncio.create_subprocess_shell(
+                f"ffmpeg -i {shlex.quote(selected_video)} -ar 16000 -ac 1 -c:a pcm_s16le -y {shlex.quote(out_file)}"
+            )
             if response != 0:
-                # notify("Audio extraction failed")
+                await self.send_msg({
+                    'fn': 'notify_dialog',
+                    'title': 'Notification',
+                    'msg': 'Audio extraction failed'
+                })
                 return
+
         #progressbar['value'] = 10
 
         txt_file_path = os.path.join(folder_path, base_name + '.txt')

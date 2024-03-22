@@ -1,21 +1,23 @@
 import os
+import asyncio
 
 from django.shortcuts import render
 from django.http import JsonResponse
 
 from app.models import KeyValue
-from app.utils import get_with_defaults, get_config_sync
+from app.utils import get_config_sync, get, Async
 from app.defaults import defaults
 
 
 def main(request):
     current_tab = KeyValue.objects.filter(key_field='current_tab').first()
     current_tab = current_tab.value if current_tab else 'script_cleaner'
-    state = get_with_defaults(defaults.get(current_tab, {}))
-    state['current_tab'] = current_tab
     get_config_sync()
+    with Async() as loop:
+        state = loop.run_until_complete(get(defaults.get(current_tab, [])))
     context = {
         'data': {
+            'current_tab': current_tab,
             'state': state,
             'menu': [
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
