@@ -45,7 +45,7 @@ async def get(key, default=None):
         await c.execute('select * from app_keyvalue where key_field = %s', (key,))
         ls = await c.fetchall()
         if ls:
-            return ls[0]
+            return ls[0]['value']
         else:
             for _, item in defaults.items():
                 res = item.get(key)

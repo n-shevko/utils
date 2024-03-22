@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         this.gpt_answer = args.answer;
         this.out_file = args.out_file;
         this.progress = args.progress;
+        this.taskId = args.task_id;
       },
       copyResult() {
         navigator.clipboard.writeText(this.gpt_answer || this.state.script_cleaner_last_answer_gpt);

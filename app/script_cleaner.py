@@ -39,8 +39,7 @@ async def get_text_only(path):
         f.write(result)
 
 
-async def try_split(delimiter, text, tokens_for_request, encoding):
-    script_cleaner_prompt = await get('script_cleaner_prompt')
+def try_split(delimiter, text, tokens_for_request, encoding, script_cleaner_prompt):
     sentences = text.split(delimiter)
     offset = 0
     input_tokens = 0
@@ -72,8 +71,9 @@ async def try_split(delimiter, text, tokens_for_request, encoding):
 async def estimate_cost(text):
     encoding = tiktoken.encoding_for_model("gpt-4")
     tokens_for_request = await get_tokens_for_request()
-    point_attempt = try_split('.', text, tokens_for_request, encoding)
-    space_attempt = try_split(' ', text, tokens_for_request, encoding)
+    script_cleaner_prompt = await get('script_cleaner_prompt')
+    point_attempt = try_split('.', text, tokens_for_request, encoding, script_cleaner_prompt)
+    space_attempt = try_split(' ', text, tokens_for_request, encoding, script_cleaner_prompt)
     if (not point_attempt[0]) or (not space_attempt[0]):
         if not point_attempt[0]:
             choice = point_attempt
@@ -103,7 +103,7 @@ async def estimate_cost(text):
 
 
 async def get_tokens_for_request():
-    percent_of_max_tokens_to_use_for_response = int(get('percent_of_max_tokens_to_use_for_response'))
+    percent_of_max_tokens_to_use_for_response = int(await get('percent_of_max_tokens_to_use_for_response'))
     tokens_for_request_and_response = 8192
     p = percent_of_max_tokens_to_use_for_response / 100
     return int(tokens_for_request_and_response * (1 - p))
@@ -140,7 +140,7 @@ async def call_chatgpt(config, client, user_mesage, out_file, tokens_for_respons
     # else:
     #     out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
     out = 'abc'
-    await asyncio.sleep(10)
+    await asyncio.sleep(0.5)
     with open(out_file, 'a') as f:
         f.write(out)
     return False
@@ -168,14 +168,15 @@ class Worker(Common):
         out_file = os.path.join(folder_path, file_name + '_out_' + formatted_datetime + '.txt')
         await update('script_cleaner_last_out_file', out_file)
         encoding = tiktoken.encoding_for_model("gpt-4")
-        tokens_for_request = get_tokens_for_request()
+        tokens_for_request = await get_tokens_for_request()
         tokens_for_request_and_response = 8192
         task_id = str(uuid4())
+        script_cleaner_prompt = await get('script_cleaner_prompt')
         while offset < len(sentences):
             request = []
             while offset < len(sentences):
                 sentence = sentences[offset]
-                tmp = delimeter.join(request + [config['script_cleaner_prompt'], sentence])
+                tmp = delimeter.join(request + [script_cleaner_prompt, sentence])
                 cnt = len(encoding.encode(tmp))
                 if cnt <= tokens_for_request:
                     request.append(sentence)
@@ -185,7 +186,7 @@ class Worker(Common):
 
             request = delimeter.join(request)
             tokens_for_response = tokens_for_request_and_response - len(
-                encoding.encode(request + config['script_cleaner_prompt'])) - 100
+                encoding.encode(request + script_cleaner_prompt)) - 100
             stop = await call_chatgpt(config, client, request, out_file, tokens_for_response)
             with open(out_file, 'r') as file:
                 content = file.read()

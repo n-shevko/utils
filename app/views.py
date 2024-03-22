@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 
 from app.models import KeyValue
-from app.utils import get_with_defaults
+from app.utils import get_with_defaults, get_config_sync
 from app.defaults import defaults
 
 
@@ -13,6 +13,7 @@ def main(request):
     current_tab = current_tab.value if current_tab else 'script_cleaner'
     state = get_with_defaults(defaults.get(current_tab, {}))
     state['current_tab'] = current_tab
+    get_config_sync()
     context = {
         'data': {
             'state': state,
