@@ -2,7 +2,7 @@
 
 <template v-if="current_tab === 'citations_recovering'">
 
-<div class="row mt-3">
+<div class="row mt-2">
     <div class="col-2"></div>
     <div class="col-7">
         <div class="card px-3 py-3">
@@ -16,7 +16,6 @@
                     <button
                             type="button"
                             class="btn btn-primary"
-                            :disabled="inProgress"
                             @click="openModal('select_file', 'Select docx with normal citations', 'docx_with_normal_citations')"
                     >
                       Select docx with normal citations
@@ -34,7 +33,6 @@
                     <button
                             type="button"
                             class="btn btn-primary"
-                            :disabled="inProgress"
                             @click="openModal('select_file', 'Select docx with broken citations', 'docx_with_broken_citations')"
                     >
                       Select docx with broken citations
@@ -55,7 +53,7 @@
 
             <div class="row my-2">
                 <div class="col-12">
-                    <button type="button" class="btn btn-primary" :disabled="inProgress" @click.prevent="runCitationsRecovering">Run</button>
+                    <button type="button" class="btn btn-primary" @click.prevent="runCitationsRecovering">Run</button>
                 </div>
             </div>
 

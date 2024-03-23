@@ -11,18 +11,20 @@
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/css/style.min.css" />
 
-    <script src="/static/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/jquery.min.js"></script>
-    <script src="/static/js/jstree.min.js"></script>
-    <script src="/static/js/vue.min.js"></script>
+    <script src="/static/js_libs/bootstrap.bundle.min.js"></script>
+    <script src="/static/js_libs/jquery.min.js"></script>
+    <script src="/static/js_libs/jstree.min.js"></script>
+    <script src="/static/js_libs/vue.min.js"></script>
     {{ data|json_script:"vue_data" }}
-    <script src="/static/js/main.js"></script>
+    {% for file in js_files %}
+      <script src="{{file}}"></script>
+    {% endfor %}
 </head>
 <body>
 
 <div class="row pt-1 pb-2 m-0" id="app">
     {% verbatim %}
-    <ul class="nav nav-tabs pe-0">
+    <ul class="nav nav-tabs ps-1">
         <li class="nav-item" v-for="item in menu">
             <a :class="['nav-link', { 'active': item.name === current_tab }]" @click.prevent.stop="switchTab(item.name)">{{ item.label }}</a>
         </li>

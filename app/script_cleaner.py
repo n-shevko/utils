@@ -78,40 +78,41 @@ async def get_tokens_for_request():
 
 
 async def call_chatgpt(config, user_message, out_file, tokens_for_response, script_cleaner_prompt):
-    headers = {
-        'Authorization': f'Bearer {config["openai_api_key"]}',
-        'Content-Type': 'application/json'
-    }
-    payload = {
-        "model": "gpt-4",
-        "messages": [
-            {"role": "system", "content": script_cleaner_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        "temperature": config['chat_gpt_temperature'],
-        "max_tokens": tokens_for_response,
-        "top_p": config['chat_gpt_top_p'],
-        "frequency_penalty": config['chat_gpt_frequency_penalty'],
-        "presence_penalty": config['chat_gpt_presence_penalty']
-    }
-
-    for attempt in range(3):
-        async with aiohttp.ClientSession() as session:
-            async with session.post('https://api.openai.com/v1/completions', headers=headers, data=json.dumps(payload)) as response:
-                if response.status == 200:
-                    response = await response.json()
-                    break
-                else:
-                    return {"error": "Failed to fetch response from OpenAI"}
-
-    if response.choices[0].finish_reason == 'length':
-        #notify("finish_reason == 'length'\n" + solution)
-        return True
-
-    if response.choices[0].finish_reason == 'stop':
-        out = response.choices[0].message.content
-    else:
-        out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
+    # headers = {
+    #     'Authorization': f'Bearer {config["openai_api_key"]}',
+    #     'Content-Type': 'application/json'
+    # }
+    # payload = {
+    #     "model": "gpt-4",
+    #     "messages": [
+    #         {"role": "system", "content": script_cleaner_prompt},
+    #         {"role": "user", "content": user_message}
+    #     ],
+    #     "temperature": config['chat_gpt_temperature'],
+    #     "max_tokens": tokens_for_response,
+    #     "top_p": config['chat_gpt_top_p'],
+    #     "frequency_penalty": config['chat_gpt_frequency_penalty'],
+    #     "presence_penalty": config['chat_gpt_presence_penalty']
+    # }
+    #
+    # for attempt in range(3):
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.post('https://api.openai.com/v1/completions', headers=headers, data=json.dumps(payload)) as response:
+    #             if response.status == 200:
+    #                 response = await response.json()
+    #                 break
+    #             else:
+    #                 return {"error": "Failed to fetch response from OpenAI"}
+    #
+    # if response.choices[0].finish_reason == 'length':
+    #     #notify("finish_reason == 'length'\n" + solution)
+    #     return True
+    #
+    # if response.choices[0].finish_reason == 'stop':
+    #     out = response.choices[0].message.content
+    # else:
+    #     out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
+    #
     out = 'abc'
     await asyncio.sleep(0.5)
     with open(out_file, 'a') as f:
@@ -145,7 +146,7 @@ class Worker(citations_recovering.Worker):
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'out_file': out_file,
+                'state.script_cleaner_last_out_file': out_file,
                 'taskId': task_id
             }
         })
@@ -183,7 +184,7 @@ class Worker(citations_recovering.Worker):
             await self.send_msg({
                 'fn': 'update',
                 'value': {
-                    'gpt_answer': content,
+                    'state.script_cleaner_last_answer_gpt': content,
                     'progress': round(((offset + 1) / len(sentences)) * 100)
                 }
             })

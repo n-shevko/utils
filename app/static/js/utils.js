@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
   new Vue({
     el: '#app',
+    mixins: [
+      citations_recovering,
+      script_cleaner
+    ],
     data() {
       return Object.assign({
           ws: null,
@@ -10,13 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
           dialog: null,
           modal: null,
           msg: null,
-          gpt_answer: null,
-          out_file: null,
           current_tab: null,
-          progress: 0,
-          progressMsg: null,
-          inProgress: false,
-          taskId: null
         },
         JSON.parse(document.getElementById('vue_data').textContent)
       );
@@ -28,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.ignoreNextUpdate = false;
             return
           }
-
           Object.keys(newValue).forEach(key => {
             this.sendMessage({fn: 'update',  key: key, value: newValue[key]});
           });
@@ -94,16 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
       dialogAnswer(answer) {
         this[this.dialogCallback](answer)
       },
-      runChatgpt(answer) {
-        if (answer) {
-          this.sendMessage({fn: 'run_chatgpt', answer: true, delimeter: this.delimeter});
-        }
-        this.modal.hide();
-      },
-      unlockRun() {
-        this.inProgress = false;
-        this.modal.hide();
-      },
       switchTab(name) {
         this.sendMessage({fn: 'update', key: 'current_tab', value: name});
         this.current_tab = name;
@@ -116,9 +103,6 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('WebSocket is not open. Unable to send message.');
         }
       },
-      copyResult() {
-        navigator.clipboard.writeText(this.gpt_answer || this.state.script_cleaner_last_answer_gpt);
-      },
       hideModal() {
         this.modal.hide();
       },
@@ -126,21 +110,9 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#jstree').jstree(true).destroy();
         this.modal.hide();
       },
-      script_cleaner_run() {
-        this.inProgress = true;
-        this.sendMessage({fn: 'script_cleaner_run'})
-      },
       onMessage(event) {
         let request = JSON.parse(event.data);
         this[request.fn](request);
-      },
-      stopScriptCleaner() {
-        this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
-        this.inProgress = false;
-      },
-      runCitationsRecovering() {
-        this.inProgress = true;
-        this.sendMessage({fn: 'run_citations_recovering'})
       }
     }
   });

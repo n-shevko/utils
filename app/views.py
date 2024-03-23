@@ -3,6 +3,7 @@ import asyncio
 
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.conf import settings
 
 from app.models import KeyValue
 from app.utils import get_config_sync, get, Async
@@ -29,6 +30,16 @@ def main(request):
             ]
         }
     }
+    js_files = []
+    for item in context['data']['menu']:
+        tail = os.path.join('static', 'js', f"{item['name']}.js")
+        js = os.path.join(settings.BASE_DIR, 'app', tail)
+        if not os.path.exists(js):
+            with open(js, 'w') as file:
+                file.write(f"const {item['name']} = {{}}")
+        js_files.append(tail)
+    js_files.append(os.path.join('static', 'js', f"utils.js"))
+    context['js_files'] = js_files
     return render(request, "main.html", context)
 
 
