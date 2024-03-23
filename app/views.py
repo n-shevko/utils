@@ -30,16 +30,21 @@ def main(request):
             ]
         }
     }
-    js_files = []
+
+    with open(os.path.join(settings.BASE_DIR, 'app', 'templates', f"template.html"), 'r') as file:
+        template2 = file.read()
+
     for item in context['data']['menu']:
-        tail = os.path.join('static', 'js', f"{item['name']}.js")
-        js = os.path.join(settings.BASE_DIR, 'app', tail)
+        template = os.path.join(settings.BASE_DIR, 'app', 'templates',  f"{item['name']}.html")
+        if not os.path.exists(template):
+            with open(template, 'w') as file:
+                file.write(template2.replace('{{current_tab}}', item['name']))
+
+        js = os.path.join(settings.BASE_DIR, 'app', 'static', 'js', f"{item['name']}.js")
         if not os.path.exists(js):
             with open(js, 'w') as file:
-                file.write(f"const {item['name']} = {{}}")
-        js_files.append(tail)
-    js_files.append(os.path.join('static', 'js', f"utils.js"))
-    context['js_files'] = js_files
+                file.write(f"{item['name']} = {{}}")
+
     return render(request, "main.html", context)
 
 

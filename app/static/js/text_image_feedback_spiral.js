@@ -1,1 +1,1 @@
-const text_image_feedback_spiral = {}
+text_image_feedback_spiral = {}

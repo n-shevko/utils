@@ -1,4 +1,4 @@
-const script_cleaner = {
+script_cleaner = {
   data: {
     progress: 0,
     progressMsg: null,

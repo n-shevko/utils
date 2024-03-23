@@ -1,10 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
+  let vue_data = JSON.parse(document.getElementById('vue_data').textContent);
+  let mixins = [];
+  vue_data.menu.forEach(item => {
+    if (window[item.name] !== undefined) {
+      mixins.push(window[item.name]);
+    }
+  })
+
   new Vue({
     el: '#app',
-    mixins: [
-      citations_recovering,
-      script_cleaner
-    ],
+    mixins: mixins,
     data() {
       return Object.assign({
           ws: null,
@@ -16,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
           msg: null,
           current_tab: null,
         },
-        JSON.parse(document.getElementById('vue_data').textContent)
+        vue_data
       );
     },
     watch: {

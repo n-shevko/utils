@@ -16,9 +16,10 @@
     <script src="/static/js_libs/jstree.min.js"></script>
     <script src="/static/js_libs/vue.min.js"></script>
     {{ data|json_script:"vue_data" }}
-    {% for file in js_files %}
-      <script src="{{file}}"></script>
+    {% for item in data.menu %}
+      <script src="/static/js/{{item.name}}.js"></script>
     {% endfor %}
+    <script src="/static/js/utils.js"></script>
 </head>
 <body>
 
@@ -30,11 +31,14 @@
         </li>
     </ul>
     {% endverbatim %}
+
     {% include 'modal.html' %}
-    {% include 'citations_recovering.html' %}
-    {% include 'script_cleaner.html' %}
-    {% include 'text_image_feedback_spiral.html' %}
-    {% include 'settings.html' %}
+
+    {% for item in data.menu %}
+      {% with template=item.name|add:".html" %}
+        {% include template %}
+      {% endwith %}
+    {% endfor %}
 </div>
 
 </body>

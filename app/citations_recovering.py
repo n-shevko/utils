@@ -146,7 +146,6 @@ class Worker(Common):
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'inProgress': False,
                 'state.last_docx_result': output_docx_path
             }
         })
