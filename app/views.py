@@ -13,13 +13,16 @@ def main(request):
     current_tab = KeyValue.objects.filter(key_field='current_tab').first()
     current_tab = current_tab.value if current_tab else 'script_cleaner'
     get_config_sync()
+
+    fields = defaults.get(current_tab, {}).keys()
     with Async() as loop:
-        state = loop.run_until_complete(get(defaults.get(current_tab, [])))
+        state = loop.run_until_complete(get(fields, force_dict=True))
     context = {
         'data': {
             'current_tab': current_tab,
             'state': state,
             'menu': [
+                {'name': 'citations_recovering', 'label': 'Citations recovering'},
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
                 # {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
                 {'name': 'settings', 'label': 'Settings'}

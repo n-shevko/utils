@@ -1,0 +1,65 @@
+{% verbatim %}
+
+<template v-if="current_tab === 'citations_recovering'">
+
+<div class="row mt-3">
+    <div class="col-2"></div>
+    <div class="col-7">
+        <div class="card px-3 py-3">
+            <div class="row my-2">
+                <div class="col-12">
+                     {{ state.docx_with_broken_citations }}
+                </div>
+            </div>
+            <div class="row my-2">
+                <div class="col-12">
+                    <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="inProgress"
+                            @click="openModal('select_file', 'Select docx with normal citations', 'docx_with_normal_citations')"
+                    >
+                      Select docx with normal citations
+                    </button>
+                </div>
+            </div>
+
+            <div class="row my-2">
+                <div class="col-12">
+                     {{ state.docx_with_normal_citations }}
+                </div>
+            </div>
+            <div class="row my-2">
+                <div class="col-12">
+                    <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="inProgress"
+                            @click="openModal('select_file', 'Select docx with broken citations', 'docx_with_broken_citations')"
+                    >
+                      Select docx with broken citations
+                    </button>
+                </div>
+            </div>
+
+         <div class="row my-2">
+             <div class="col-12">
+                 Last result file:
+             </div>
+         </div>
+         <div class="row my-2">
+             <div class="col-12">
+                 {{ state.last_docx_result }}
+             </div>
+         </div>
+
+            <div class="row my-2">
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary" :disabled="inProgress" @click.prevent="runCitationsRecovering">Run</button>
+                </div>
+            </div>
+
+    </div>
+</div>
+</template>
+{% endverbatim %}

@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return Object.assign({
           ws: null,
           dialogTitle: null,
+          fileDst: null,
+          ignoreNextUpdate: false,
           dialog: null,
           modal: null,
           msg: null,
@@ -22,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
     watch: {
       'state': {
         handler(newValue, oldValue) {
+          if (this.ignoreNextUpdate) {
+            this.ignoreNextUpdate = false;
+            return
+          }
+
           Object.keys(newValue).forEach(key => {
             this.sendMessage({fn: 'update',  key: key, value: newValue[key]});
           });
@@ -36,16 +43,21 @@ document.addEventListener('DOMContentLoaded', function() {
     mounted: function () {
       let self = this;
       document.getElementById('modal').addEventListener('shown.bs.modal', event => {
-        let handler = self[`${self.dialog}_post`];
-        if (handler !== undefined) {
-          handler();
+        if (self.dialog === 'select_file') {
+          this.initJsTree();
         }
       })
     },
     methods: {
       update(args) {
+        this.ignoreNextUpdate = true;
         Object.keys(args.value).forEach(key => {
-          this[key] = args.value[key];
+          if (key.indexOf('.') !== -1) {
+            let keys = key.split('.');
+            this.$set(this[keys[0]], keys[1], args.value[key])
+          } else {
+            this[key] = args.value[key];
+          }
         });
         if (args.callback !== undefined) {
           this[args.callback]();
@@ -55,12 +67,13 @@ document.addEventListener('DOMContentLoaded', function() {
         this.modal = new bootstrap.Modal(document.getElementById('modal'));
         this.modal.show();
       },
-      openModal(val){
+      openModal(val, dialogTitle, fileDst){
         this.dialog = val;
+        this.dialogTitle = dialogTitle;
+        this.fileDst = fileDst;
         this.initModal();
       },
-      select_video_post() {
-        this.dialogTitle = 'Select video';
+      initJsTree() {
         $('#jstree').jstree({
           'core' : {
             'multiple' : false,
@@ -75,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         let self = this;
         $('#jstree').on("changed.jstree", function (e, data) {
-          self.state.selected_video = data.selected[0];
+          self.state[self.fileDst] = data.selected[0];
         });
       },
       dialogAnswer(answer) {
@@ -84,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
       runChatgpt(answer) {
         if (answer) {
           this.sendMessage({fn: 'run_chatgpt', answer: true, delimeter: this.delimeter});
-          this.inProgress = true;
         }
         this.modal.hide();
       },
@@ -110,11 +122,12 @@ document.addEventListener('DOMContentLoaded', function() {
       hideModal() {
         this.modal.hide();
       },
-      selectVideo() {
+      closeFileSelect() {
         $('#jstree').jstree(true).destroy();
         this.modal.hide();
       },
       script_cleaner_run() {
+        this.inProgress = true;
         this.sendMessage({fn: 'script_cleaner_run'})
       },
       onMessage(event) {
@@ -124,6 +137,10 @@ document.addEventListener('DOMContentLoaded', function() {
       stopScriptCleaner() {
         this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
         this.inProgress = false;
+      },
+      runCitationsRecovering() {
+        this.inProgress = true;
+        this.sendMessage({fn: 'run_citations_recovering'})
       }
     }
   });

@@ -9,7 +9,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-          <template v-if="dialog === 'select_video'">
+          <template v-if="dialog === 'select_file'">
               <div id="jstree"></div>
           </template>
           <template v-else-if="dialog === 'yes_no_dialog' || dialog === 'notify_dialog'">
@@ -17,8 +17,8 @@
           </template>
       </div>
       <div class="modal-footer">
-          <template v-if="dialog === 'select_video'">
-              <button type="button" class="btn btn-primary" @click.prevent="selectVideo">Done</button>
+          <template v-if="dialog === 'select_file'">
+              <button type="button" class="btn btn-primary" @click.prevent="closeFileSelect">Done</button>
           </template>
           <template v-else-if="dialog === 'yes_no_dialog'">
               <button type="button" class="btn btn-primary" @click.prevent="dialogAnswer(false)">No</button>

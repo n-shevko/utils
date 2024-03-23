@@ -10,10 +10,10 @@ import tiktoken
 from uuid import uuid4
 from datetime import datetime
 
-from openai import OpenAI
 from django.conf import settings
 
 from app.utils import Common, get_config, get, update
+from app import citations_recovering
 
 
 solution = "You can solve this problem by increasing 'Percent of LLM context to use for response'"
@@ -119,7 +119,7 @@ async def call_chatgpt(config, user_message, out_file, tokens_for_response, scri
     return False
 
 
-class Worker(Common):
+class Worker(citations_recovering.Worker):
     async def run_chatgpt(self, params):
         if not params['answer']:
             return

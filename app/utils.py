@@ -55,7 +55,7 @@ for _, item in defaults.items():
     defaults2.update(item)
 
 
-async def get(key, default=None):
+async def get(key, default=None, force_dict=False):
     if not key:
         return {}
     async with db() as c:
@@ -73,7 +73,7 @@ async def get(key, default=None):
                 continue
 
             result[k] = defaults2[k]
-        if len(keys) == 1:
+        if len(keys) == 1 and not force_dict:
             if result:
                 return list(result.values())[0]
             else:
@@ -101,10 +101,11 @@ class Common(AsyncWebsocketConsumer):
         await update(params['key'], params['value'])
 
     async def get_state(self, params):
-        keys = defaults.get(params['current_tab'], [])
+        keys = defaults.get(params['current_tab'], {}).keys()
+        state = await get(keys)
         await self.send_msg({
             'fn': 'update',
-            'value': {'state': await get(keys)}
+            'value': {'state': state}
         })
 
     async def notify(self, msg):

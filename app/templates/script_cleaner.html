@@ -1,9 +1,9 @@
 {% verbatim %}
+
 <template v-if="current_tab === 'script_cleaner'">
 <div class="row my-2">
-
     <div class="col-12">
-        <template v-if="state.selected_video === null">
+        <template v-if="state.selected_video === ''">
             Video isn't selected
         </template>
         <template v-else>
@@ -22,7 +22,7 @@
                             type="button"
                             class="btn btn-primary"
                             :disabled="inProgress"
-                            @click="openModal('select_video')"
+                            @click="openModal('select_file', 'Select video', 'selected_video')"
                     >
                       Select video
                     </button>

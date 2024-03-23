@@ -9,3 +9,4 @@ tzdata==2024.1
 aiohttp==3.9.3
 
 whitenoise==6.6.0
+lxml==5.1.0
