@@ -34,51 +34,6 @@ class Config(models.Model):
         default=0
     )
 
-
-    text_image_feedback_spiral_chat_gpt_max_tokens = models.IntegerField(
-        verbose_name='Text-image feedback spiral max_tokens',
-        default=1000
-    )
-
-
-
-
-
-
-
-    dall_e_prompt = models.TextField(
-        max_length=100000,
-        verbose_name='DALL-E prompt to generate image',
-        default='Draw 3 circles'
-    )
-    dall_e_model = models.TextField(
-        max_length=100,
-        verbose_name='DALL-E model',
-        default="dall-e-3"
-    )
-    dall_e_size = models.TextField(
-        max_length=100,
-        verbose_name='Image size',
-        default="1024x1024"
-    )
-    dall_e_quality = models.TextField(
-        choices=[('standard', 'Standard'), ('hd', 'hd')],
-        default='standard',
-        max_length=50,
-        verbose_name='Image quality',
-    )
-    dall_e_n = models.IntegerField(
-        verbose_name='n',
-        default=1
-    )
-
-
-    suggest_changes_prompt = models.TextField(
-        max_length=20000,
-        verbose_name="'Suggest changes' prompt",
-        default='What do you think it is better change in this image? Make your suggestions as prompt to dalle 3. Provide only suggestions as not numbered list and without any other text.'
-    )
-
     class Meta:
         verbose_name = 'Settings'
         verbose_name_plural = 'Settings'

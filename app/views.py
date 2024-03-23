@@ -24,7 +24,7 @@ def main(request):
             'menu': [
                 {'name': 'citations_recovering', 'label': 'Citations recovering'},
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
-                # {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
+                {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
                 {'name': 'settings', 'label': 'Settings'}
             ]
         }

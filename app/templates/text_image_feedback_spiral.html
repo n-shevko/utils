@@ -1,3 +1,61 @@
-<template v-if="state.current_tab === 'text_image_feedback_spiral'">
-bbbb
+<template v-if="current_tab === 'text_image_feedback_spiral'">
+    <div class="row">
+        <div class="col-4">
+            <textarea class="form-control" rows="10" v-model="state.dall_e_prompt"></textarea>
+        </div>
+        <div class="col-4">
+            <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
+                for image_1
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
+            for image_2
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-4">
+            <textarea class="form-control" rows="10" v-model="state.suggest_changes_prompt"></textarea>
+        </div>
+    </div>
+    <div class="row my-2">
+        <label for="text_image_feedback_spiral_chat_gpt_max_tokens" class="col-4 col-form-label">
+            Text-image feedback spiral max tokens
+        </label>
+        <div class="col-2">
+            <input  class="form-control form-control-sm"
+                    type="number"
+                    id="text_image_feedback_spiral_chat_gpt_max_tokens"
+                    v-model="state.text_image_feedback_spiral_chat_gpt_max_tokens"
+                    :disabled="inProgress"
+            >
+        </div>
+    </div>
+    <div class="row">
+        <label for="dall_e_size" class="col-4 col-form-label">
+            DALL-E size
+        </label>
+        <div class="col-1">
+            <input  class="form-control form-control-sm"
+                    type="text"
+                    id="dall_e_size"
+                    v-model="state.dall_e_size"
+            >
+        </div>
+    </div>
+    <div class="row">
+        <label for="dall_e_quality" class="col-4 col-form-label">DALL-E Quality</label>
+        <div class="col-1">
+            <select class="form-select form-select-sm" id="dall_e_quality" v-model="state.dall_e_quality">
+                <option value="standard">Standard</option>
+                <option value="hd">HD</option>
+            </select>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <button type="button" class="btn btn-primary" @click.prevent="run_2">Run</button>
+        </div>
+    </div>
 </template>
