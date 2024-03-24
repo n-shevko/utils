@@ -11,15 +11,12 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server=8.0.36-0ubunt
 #RUN make
 #RUN bash ./models/download-ggml-model.sh base.en
 
-RUN apt install -y python3 python3-pip
+RUN apt install -y python3 python3-pip default-libmysqlclient-dev pkg-config
 WORKDIR /src
-#RUN ls
-COPY * .
+COPY packages .
+RUN pip install -r packages
+COPY . .
 COPY my2.cnf my.cnf
-#RUN pip install -r packages
-#RUN python3 manage.py migrate
-#CMD daphne -b 0.0.0.0 -p 8000 project.asgi:application
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["/src/entrypoint.sh"]
-#CMD mysqld --init-file=/src/mysql-init.txt --datadir=/data/mysql
-CMD sleep 3555
+CMD daphne -b 0.0.0.0 -p 8000 project.asgi:application

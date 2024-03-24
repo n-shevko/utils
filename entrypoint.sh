@@ -5,7 +5,8 @@ chown -R mysql:mysql /data/mysql
 chmod -R 755 /data/mysql
 mysqld --initialize --datadir=/data/mysql
 mysqld --init-file=/src/mysql-init.txt --datadir=/data/mysql &
-python manage.py migrate
+sleep 2
+python3 manage.py migrate
 
 
 exec "$@"
