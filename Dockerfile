@@ -19,4 +19,4 @@ RUN pip install -r packages
 COPY . .
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["/src/entrypoint.sh"]
-CMD daphne -b 0.0.0.0 -p 8000 project.asgi:application
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "project.asgi:application"]
