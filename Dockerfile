@@ -13,10 +13,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server=8.0.36-0ubunt
 
 RUN apt install -y python3 python3-pip default-libmysqlclient-dev pkg-config
 WORKDIR /src
+RUN touch prod
 COPY packages .
 RUN pip install -r packages
 COPY . .
-COPY my2.cnf my.cnf
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["/src/entrypoint.sh"]
 CMD daphne -b 0.0.0.0 -p 8000 project.asgi:application

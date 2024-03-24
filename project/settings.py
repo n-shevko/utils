@@ -79,22 +79,18 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 WHISPER = os.path.join(os.path.expanduser('~'), 'whisper.cpp')
-
-volume = '/data'
-database_file = os.path.join(BASE_DIR, 'db.sqlite3')
-database_file_in_volume = os.path.join(volume, 'db.sqlite3')
-if os.path.exists(volume):
-    if os.path.exists(database_file) and not os.path.exists(database_file_in_volume):
-        shutil.move(database_file, volume)
-    database_file = database_file_in_volume
+prod = os.path.exists(os.path.join(BASE_DIR, 'prod'))
+if prod:
     WHISPER = '/whisper.cpp'
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {
-            'read_default_file': os.path.join(BASE_DIR, 'my.cnf')
-        }
+        'NAME': 'data',
+        'USER': 'michael' if prod else os.getlogin(),
+        'PASSWORD': '123',
+        'HOST': 'localhost',
+        'PORT': 3306,
     }
 }
 

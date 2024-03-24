@@ -2,19 +2,22 @@ import json
 import aiomysql
 import asyncio
 
+from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer
+
 from app.models import Config
 from app.defaults import defaults
 
 
 class db():
     async def __aenter__(self):
+        config = settings.DATABASES['default']
         self.conn = await aiomysql.connect(
-            host='127.0.0.1',
-            port=3306,
-            user='nikos',
-            password='123',
-            db='data'
+            host=config['HOST'],
+            port=config['PORT'],
+            user=config['USER'],
+            password=config['PASSWORD'],
+            db=config['NAME']
         )
         self.cur = await self.conn.cursor(aiomysql.DictCursor)
         return self.cur
