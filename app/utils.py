@@ -1,6 +1,7 @@
 import json
 import aiomysql
 import asyncio
+import traceback
 
 from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -94,6 +95,18 @@ async def update(key, value):
         )
 
 
+async def show_error_as_notification(self, method):
+    async def wrapped(*args, **kwargs):
+        try:
+            return await method(*args, **kwargs)
+        except Exception as _:
+            error = traceback.format_exc().replace('\n', '<br>')
+            await self.notify(
+                f"The following error occured:<br><br>{error}"
+            )
+    return wrapped
+
+
 class Common(AsyncWebsocketConsumer):
     background_tasks = set()
 
@@ -124,7 +137,9 @@ class Common(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         request = json.loads(text_data)
+        method = getattr(self, request['fn'])
+        wrapped = await show_error_as_notification(self, method)
         # https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
-        task = asyncio.create_task(getattr(self, request['fn'])(request))
+        task = asyncio.create_task(wrapped(request))
         self.background_tasks.add(task)
         task.add_done_callback(self.background_tasks.discard)

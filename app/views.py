@@ -1,5 +1,4 @@
 import os
-import asyncio
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -52,7 +51,10 @@ def files(request):
     id = request.GET['id']
     response = []
     if id == '#':
-        path = '/home/nikos'
+        if 'USER_DATA' in os.environ:
+            path = os.environ['USER_DATA']
+        else:
+            path = os.path.expanduser('~')
     else:
         path = id
     for item in sorted(os.listdir(path), key=len):
