@@ -7,6 +7,4 @@ mysqld --initialize --datadir=/service_data/mysql
 mysqld --init-file=/src/mysql-init.txt --datadir=/service_data/mysql &
 sleep 2
 python3 manage.py migrate
-
-
-exec "$@"
+exec gosu $USER_ID:$GROUP_ID "$@"

@@ -11,7 +11,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server=8.0.36-0ubunt
 #RUN make
 #RUN bash ./models/download-ggml-model.sh base.en
 
-RUN apt install -y python3 python3-pip default-libmysqlclient-dev pkg-config
+RUN apt install -y python3 python3-pip default-libmysqlclient-dev pkg-config gosu
 WORKDIR /src
 RUN touch prod
 COPY packages .

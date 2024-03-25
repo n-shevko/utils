@@ -89,7 +89,7 @@ DATABASES = {
         'NAME': 'data',
         'USER': 'michael' if prod else os.getlogin(),
         'PASSWORD': '123',
-        'HOST': 'localhost',
+        'HOST': '127.0.0.1',
         'PORT': 3306,
     }
 }

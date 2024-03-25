@@ -1,5 +1,5 @@
 docker build -t utils_img .
 docker stop -t 0 utils_container && \
 docker rm utils_container && \
-docker run -d --name utils_container -v service_data:/service_data -v /home/nikos:/data  -p 8000:8000 utils_img && \
+docker run -d --name utils_container -v service_data:/service_data -v /home/nikos:/home/nikos -p 8000:8000 -e USER_DATA=/home/nikos -e USER_ID=$(id -u) -e GROUP_ID=$(id -g) utils_img && \
 docker exec -it utils_container bash

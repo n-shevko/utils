@@ -11,7 +11,7 @@ from app.defaults import defaults
 
 def main(request):
     current_tab = KeyValue.objects.filter(key_field='current_tab').first()
-    current_tab = current_tab.value if current_tab else 'script_cleaner'
+    current_tab = current_tab.value if current_tab else 'citations_recovering'
     get_config_sync()
 
     fields = defaults.get(current_tab, {}).keys()
@@ -23,9 +23,9 @@ def main(request):
             'state': state,
             'menu': [
                 {'name': 'citations_recovering', 'label': 'Citations recovering'},
-                {'name': 'script_cleaner', 'label': 'Script cleaner'},
-                {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
-                {'name': 'settings', 'label': 'Settings'}
+              #  {'name': 'script_cleaner', 'label': 'Script cleaner'},
+              #  {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
+              #  {'name': 'settings', 'label': 'Settings'}
             ]
         }
     }
@@ -49,7 +49,6 @@ def main(request):
 
 def files(request):
     id = request.GET['id']
-    response = []
     if id == '#':
         if 'USER_DATA' in os.environ:
             path = os.environ['USER_DATA']
@@ -57,14 +56,16 @@ def files(request):
             path = os.path.expanduser('~')
     else:
         path = id
-    for item in sorted(os.listdir(path), key=len):
+    folders = []
+    files = []
+    for item in sorted(os.listdir(path)):
         full_path = os.path.join(path, item)
         if os.path.isdir(full_path):
-            response.append(
+            folders.append(
                 {"id": full_path,  "parent": id, "text": item, "children": True}
             )
         else:
-            response.append(
+            files.append(
                 {"id": full_path, "parent": id, "text": item, 'icon': 'jstree-file'}
             )
-    return JsonResponse(response, safe=False)
+    return JsonResponse(folders + files, safe=False)
