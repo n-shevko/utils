@@ -140,3 +140,8 @@ FILES_FOLDER = '/home/nikos/data'
 ASGI_APPLICATION = "project.asgi.application"
 
 STATIC_ROOT = '/home/nikos/seafile/seafile/project/app/static'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'app', 'service_data')
+
+MEDIA_URL = '/media/'
+
