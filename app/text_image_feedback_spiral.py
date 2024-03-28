@@ -1,88 +1,76 @@
 import os
-import json
-import requests
-import time
+import aiohttp
+import aiofiles
 from datetime import datetime
-from openai import OpenAI
-from app.models import Config
-
-current_directory = os.path.dirname(os.path.abspath(__file__))
+from openai import AsyncOpenAI
 
 
-def load_config():
-    with open(os.path.join(current_directory, 'config.json'), 'r') as f:
-        return json.loads(f.read())
+
+async def create_openai_client(api_key):
+    client = AsyncOpenAI(api_key=api_key)
+    return client
 
 
-def write_config(config):
-    with open(os.path.join(current_directory, 'config.json'), 'w') as f:
-        f.write(json.dumps(config, indent=2))
+async def generate_image_url(client):
+    response = await client.images.generate(model="dall-e-3", prompt="draw 3 circles", size="1024x1024",
+                                            quality="standard", n=1)
+    image_url = response.data[0].url
+    return image_url
 
 
-def run2():
-    now = datetime.now()
-    now = now.strftime("%Y_%m_%d_%H_%M_%S")
-    out_folder = os.path.join(current_directory, 'out', now)
-    os.makedirs(out_folder)
+async def download_and_save_image(image_url, is_docker_prod=None):
+    try:
+        if is_docker_prod:
+            # Если запущено в Docker в режиме prod, сохраняем изображения в папку service_data
+            service_data_path = os.getenv('USER_DATA')
+            if service_data_path is None:
+                print("Переменная окружения USER_DATA не установлена")
+                return
 
-    config = load_config()
-    client = OpenAI(api_key=config['chatgpt_api_key'])
-    dall_e_settings = config['dall_e_settings']
-    chatgpt_settings = config['chatgpt_settings']
+            out_folder = service_data_path
+        else:
+            # Если не запущено в Docker в режиме prod, сохраняем изображения в локальную папку service_data
+            current_directory = os.path.dirname(os.path.abspath(__file__))
+            out_folder = os.path.join(current_directory, 'service_data')
 
-    with open(os.path.join(out_folder, f"dalle_request.txt"), 'w') as f:
-        f.write(dall_e_settings['prompt'])
+        os.makedirs(out_folder, exist_ok=True)
 
-    response = client.images.generate(**dall_e_settings)
-    url = response.data[0].url
-    response = requests.get(url)
-    extension = url.split('?')[0].split('.')[-1]
-    with open(os.path.join(out_folder, f"dalle_response.{extension}"), "wb") as file:
-        file.write(response.content)
-
-    with open(os.path.join(out_folder, f"chatgpt_request.txt"), 'w') as file:
-        file.write(config['chatgpt_prompt'])
-
-    chatgpt_settings['model'] = "gpt-4-vision-preview"
-    chatgpt_settings['messages'] = [
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": config['chatgpt_prompt']
-                },
-                {
-                    "type": "image_url",
-                    "image_url": {"url": url},
-                },
-            ],
-        }
-    ]
-    response = client.chat.completions.create(**chatgpt_settings)
-
-    while response.choices[0].finish_reason == 'null':
-        time.sleep(1)
-
-    response_path = os.path.join(out_folder, f"chatgpt_response.txt")
-    if response.choices[0].finish_reason == 'length':
-        out = "Failed: finish_reason == 'length'"
-        with open(response_path, 'w') as f:
-            f.write(out)
-    elif response.choices[0].finish_reason == 'stop':
-        out = response.choices[0].message.content
-        with open(response_path, 'w') as f:
-            f.write(out)
-        new_prompt = f"{dall_e_settings['prompt']}\n\n{out}"
-        config = load_config()
-        config['dall_e_settings']['prompt'] = new_prompt
-        write_config(config)
-    else:
-        out = f"Failed: finish_reason = '{response.choices[0].finish_reason}'\nResponse:{response.choices[0].message.content}"
-        with open(response_path, 'w') as f:
-            f.write(out)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(image_url) as response:
+                if response.status == 200:
+                    extension = image_url.split('?')[0].split('.')[-1]
+                    now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+                    filename = f"dalle_response_{now}.{extension}"
+                    async with aiofiles.open(os.path.join(out_folder, filename), "wb") as file:
+                        while True:
+                            chunk = await response.content.read(1024)
+                            if not chunk:
+                                break
+                            await file.write(chunk)
+    except Exception as e:
+        print(f"An error occurred while saving image: {e}")
 
 
-class Worker:
-    def update_config(self, params):
-        Config.objects.all().update(**params['config'])
+async def get_images_from_folder(is_docker_prod=None):
+    try:
+        if is_docker_prod:
+            service_data_path = os.getenv('USER_DATA')
+            if service_data_path is None:
+                print("Переменная окружения USER_DATA не установлена")
+                return []
+
+            service_data_folder = os.path.join(service_data_path, 'service_data')
+        else:
+            current_directory = os.path.dirname(os.path.abspath(__file__))
+            service_data_folder = os.path.join(current_directory, 'service_data')
+
+        if not os.path.exists(service_data_folder):
+            print(f"Папка {service_data_folder} не существует")
+            return []
+
+        images = [os.path.join(service_data_folder, file) for file in os.listdir(service_data_folder) if
+                  os.path.isfile(os.path.join(service_data_folder, file))]
+        print(images)
+        return images
+    except Exception as e:
+        print(f"An error occurred while getting images from folder: {e}")
