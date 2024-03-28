@@ -3,16 +3,6 @@
         <div class="col-4">
             <textarea class="form-control" rows="10" v-model="state.dall_e_prompt"></textarea>
         </div>
-        <div class="col-4">
-            <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
-                for image_1
-            </div>
-        </div>
-        <div class="col-4">
-            <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
-            for image_2
-            </div>
-        </div>
     </div>
     <div class="row">
         <div class="col-4">
@@ -58,4 +48,15 @@
             <button type="button" class="btn btn-primary" @click.prevent="run_2">Run</button>
         </div>
     </div>
+<div class="row">
+    <div class="col-12">
+        <div class="row">
+            <div class="col-3" v-for="(image, index) in images" :key="index">
+                <div class="image-container" style="border: 1px solid #ccc; height: 100%;">
+                    <img :src="'/media/' + image.split('/').slice(-1)[0]" :alt="'Image ' + (index + 1)" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 </template>
