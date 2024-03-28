@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from django.shortcuts import render
@@ -7,6 +8,7 @@ from django.conf import settings
 from app.models import KeyValue
 from app.utils import get_config_sync, get, Async
 from app.defaults import defaults
+from app.text_image_feedback_spiral import get_images_from_folder
 
 
 def main(request):
@@ -17,6 +19,9 @@ def main(request):
     fields = defaults.get(current_tab, {}).keys()
     with Async() as loop:
         state = loop.run_until_complete(get(fields, force_dict=True))
+
+    images = asyncio.run(get_images_from_folder())
+
     context = {
         'data': {
             'current_tab': current_tab,
@@ -25,8 +30,9 @@ def main(request):
                 {'name': 'citations_recovering', 'label': 'Citations recovering'},
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
                 {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
-              #  {'name': 'settings', 'label': 'Settings'}
-            ]
+                #  {'name': 'settings', 'label': 'Settings'}
+            ],
+            'images': images
         }
     }
 
@@ -34,7 +40,7 @@ def main(request):
         template2 = file.read()
 
     for item in context['data']['menu']:
-        template = os.path.join(settings.BASE_DIR, 'app', 'templates',  f"{item['name']}.html")
+        template = os.path.join(settings.BASE_DIR, 'app', 'templates', f"{item['name']}.html")
         if not os.path.exists(template):
             with open(template, 'w') as file:
                 file.write(template2.replace('{{current_tab}}', item['name']))
@@ -62,7 +68,7 @@ def files(request):
         full_path = os.path.join(path, item)
         if os.path.isdir(full_path):
             folders.append(
-                {"id": full_path,  "parent": id, "text": item, "children": True}
+                {"id": full_path, "parent": id, "text": item, "children": True}
             )
         else:
             files.append(
