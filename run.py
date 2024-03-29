@@ -1,5 +1,6 @@
 import sys
 import os
+import shlex
 
 
 def main():
@@ -8,6 +9,7 @@ def main():
         data = os.path.expanduser('~')
     else:
         data = sys.argv[1]
+    data = shlex.quote(data)
     os.system('docker pull nikos123/utils:1.0.0')
     os.system('docker stop -t 0 utils_container')
     os.system('docker rm utils_container')
