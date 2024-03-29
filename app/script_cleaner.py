@@ -1,7 +1,6 @@
 import os
 import shlex
 import re
-import json
 
 import asyncio
 import aiohttp
@@ -12,8 +11,8 @@ from datetime import datetime
 
 from django.conf import settings
 
-from app.utils import Common, get_config, get, update
-from app import citations_recovering
+from app.utils import get_config, get, update
+from app import margin_revisions_acceptor
 
 
 solution = "You can solve this problem by increasing 'Percent of LLM context to use for response'"
@@ -120,7 +119,7 @@ async def call_chatgpt(config, user_message, out_file, tokens_for_response, scri
     return False
 
 
-class Worker(citations_recovering.Worker):
+class Worker(margin_revisions_acceptor.Worker):
     async def run_chatgpt(self, params):
         if not params['answer']:
             return

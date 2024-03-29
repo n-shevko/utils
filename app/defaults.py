@@ -1,4 +1,8 @@
 defaults = {
+    'margin_revisions_acceptor': {
+        'docx_to_accept_revisions': '',
+        'last_result_accept_revisions': ''
+    },
     'script_cleaner': {
         'selected_video': '',
         'script_cleaner_prompt': 'You will be provided with statements, and your task is to convert them to standard English.',

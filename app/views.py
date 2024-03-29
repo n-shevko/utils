@@ -27,6 +27,7 @@ def main(request):
             'current_tab': current_tab,
             'state': state,
             'menu': [
+                {'name': 'margin_revisions_acceptor', 'label': 'Margin revisions acceptor'},
                 {'name': 'citations_recovering', 'label': 'Citations recovering'},
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
                 {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},

@@ -1,0 +1,45 @@
+{% verbatim %}
+<template v-if="current_tab === 'margin_revisions_acceptor'">
+<div class="row mt-2">
+    <div class="col-2"></div>
+    <div class="col-7">
+        <div class="card px-3 py-3">
+            <div class="row my-2">
+                <div class="col-12">
+                    {{ state.docx_to_accept_revisions }}
+                </div>
+            </div>
+            <div class="row my-2">
+                <div class="col-12">
+                    <button
+                            type="button"
+                            class="btn btn-primary"
+                            @click="openModal('select_file', 'Select docx to accept revisions', 'docx_to_accept_revisions')"
+                    >
+                      Select docx to accept revisions
+                    </button>
+                </div>
+            </div>
+
+         <div class="row my-2">
+             <div class="col-12">
+                 Last result file:
+             </div>
+         </div>
+         <div class="row my-2">
+             <div class="col-12">
+                 {{ state.last_result_accept_revisions }}
+             </div>
+         </div>
+
+            <div class="row my-2">
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary" @click.prevent="accept_revisions">Run</button>
+                </div>
+            </div>
+
+    </div>
+</div>
+</div>
+</template>
+{% endverbatim %}
