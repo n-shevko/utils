@@ -52,10 +52,12 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     methods: {
       update(args) {
-        this.ignoreNextUpdate = true;
         Object.keys(args.value).forEach(key => {
           if (key.indexOf('.') !== -1) {
             let keys = key.split('.');
+            if (keys[0] === 'state') {
+              this.ignoreNextUpdate = true;
+            }
             this.$set(this[keys[0]], keys[1], args.value[key])
           } else {
             this[key] = args.value[key];
@@ -90,6 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         let self = this;
         $('#jstree').on("changed.jstree", function (e, data) {
+          if (data.selected[0] === undefined) {
+            return
+          }
           self.state[self.fileDst] = data.selected[0];
         });
       },
