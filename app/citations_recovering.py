@@ -8,15 +8,6 @@ from app.utils import Common, get, update
 from app.docx import replace_and_save_document_xml
 
 
-def get_document_xml(docx_path):
-    temp_dir = tempfile.mkdtemp()
-    with zipfile.ZipFile(docx_path, 'r') as docx:
-        docx.extractall(temp_dir)
-
-    with open(os.path.join(temp_dir, 'word/document.xml'), 'rb') as f:
-        return f.read()
-
-
 def get_xmls_from_docx(docx_path, files):
     temp_dir = tempfile.mkdtemp()
     with zipfile.ZipFile(docx_path, 'r') as docx:
@@ -56,38 +47,72 @@ def get_content_for_begin(begin, namespace):
     return content
 
 
+def get_wt2runs(root):
+    namespace = root.nsmap['w']
+    # get all begins with 'ADDIN EN.CITE' inside
+    begin_elements = root.xpath('//w:fldChar[@w:fldCharType="begin"]', namespaces=root.nsmap)
+    wt2runs = {}
+    for begin in begin_elements:
+        try:
+            content = get_content_for_begin(begin, namespace)
+            citation = False
+            for elem in content:
+                as_txt = etree.tostring(elem, method="text", encoding='unicode').strip()
+                if 'ADDIN EN.CITE' in as_txt:
+                    citation = True
+                    break
+            if not citation:
+                continue
+
+            wts = []
+            for elem in content:
+                wts += elem.xpath('.//w:t', namespaces=root.nsmap)
+            if len(wts) != 1:
+                continue
+            wt = wts[0]
+            wt2runs[wt.text] = content
+        except:
+            pass
+    return wt2runs
+
+
+def relpace_wts(wt2runs, root):
+    wts = root.xpath('.//w:t', namespaces=root.nsmap)
+    for wt in wts:
+        if wt.text in wt2runs:
+            wrs_to_insert = wt2runs[wt.text]
+            wr = wt.getparent()
+            wr_parent = wr.getparent()
+            old_wr_index = wr_parent.index(wr)
+            wr_parent.remove(wr)
+            for offset, new_wr in enumerate(wrs_to_insert):
+                wr_parent.insert(old_wr_index + offset, new_wr)
+
+
 class Worker(Common):
     async def run_citations_recovering(self, _):
         docx_with_broken_citations = await get('docx_with_broken_citations')
         docx_with_normal_citations = await get('docx_with_normal_citations')
+        repace_files = {}
+        broken_roots = get_xmls_from_docx(
+            docx_with_broken_citations,
+            ['word/document.xml', 'word/_rels/document.xml.rels', 'word/footnotes.xml']
+        )
+        normal_roots = get_xmls_from_docx(
+            docx_with_normal_citations,
+            ['word/footnotes.xml', 'word/document.xml']
+        )
+        if 'word/footnotes.xml' in normal_roots and 'word/footnotes.xml' in broken_roots:
+            wt2runs = get_wt2runs(normal_roots['word/footnotes.xml'])
+            footnotes = broken_roots['word/footnotes.xml']
+            relpace_wts(wt2runs, footnotes)
+            new_footnotes = tempfile.NamedTemporaryFile(suffix='.xml', delete=False).name
+            with open(new_footnotes, 'wb') as f:
+                f.write(etree.tostring(footnotes, pretty_print=True, xml_declaration=False, encoding='UTF-8'))
+            repace_files['word/footnotes.xml'] = new_footnotes
 
-        # get all begins with 'ADDIN EN.CITE' inside
-        root = get_xmls_from_docx(docx_with_normal_citations, ['word/document.xml'])['word/document.xml']
-        namespace = root.nsmap['w']
-        begin_elements = root.xpath('//w:fldChar[@w:fldCharType="begin"]', namespaces=root.nsmap)
-
-        wt2runs = {}
-        for begin in begin_elements:
-            try:
-                content = get_content_for_begin(begin, namespace)
-                citation = False
-                for elem in content:
-                    as_txt = etree.tostring(elem, method="text", encoding='unicode').strip()
-                    if 'ADDIN EN.CITE' in as_txt:
-                        citation = True
-                        break
-                if not citation:
-                    continue
-
-                wts = []
-                for elem in content:
-                    wts += elem.xpath('.//w:t', namespaces=root.nsmap)
-                if len(wts) != 1:
-                    continue
-                wt = wts[0]
-                wt2runs[wt.text] = content
-            except:
-                pass
+        root = normal_roots['word/document.xml']
+        wt2runs = get_wt2runs(root)
 
         bibliography_form_src = []
         tmp = root.xpath('.//w:pStyle[@w:val="EndNoteBibliography"]', namespaces=root.nsmap)
@@ -98,19 +123,8 @@ class Worker(Common):
         w_p_with_end = root.xpath('//w:fldChar[@w:fldCharType="end"]', namespaces=root.nsmap)[-1].getparent().getparent()
         bibliography_form_src.append(w_p_with_end)
 
-        xmls = get_xmls_from_docx(docx_with_broken_citations, ['word/document.xml', 'word/_rels/document.xml.rels'])
-        root = xmls['word/document.xml']
-        wts = root.xpath('.//w:t', namespaces=root.nsmap)
-
-        for wt in wts:
-            if wt.text in wt2runs:
-                wrs_to_insert = wt2runs[wt.text]
-                wr = wt.getparent()
-                wr_parent = wr.getparent()
-                old_wr_index = wr_parent.index(wr)
-                wr_parent.remove(wr)
-                for offset, new_wr in enumerate(wrs_to_insert):
-                    wr_parent.insert(old_wr_index + offset, new_wr)
+        root = broken_roots['word/document.xml']
+        relpace_wts(wt2runs, root)
 
         tmp = root.xpath('.//w:pStyle[@w:val="EndNoteBibliography"]', namespaces=root.nsmap)
         parent = tmp[0].getparent().getparent().getparent()
@@ -121,7 +135,7 @@ class Worker(Common):
                 first_idx = parent.index(elem)
             parent.remove(elem)
 
-        xml_rels = xmls['word/_rels/document.xml.rels']
+        xml_rels = broken_roots['word/_rels/document.xml.rels']
         try:
             busy_ids = []
             for rel in xml_rels.getchildren():
@@ -164,13 +178,14 @@ class Worker(Common):
         formatted_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         output_docx_path = os.path.join(folder_path, f"{file_name}_{formatted_datetime}{ext}")
 
+        repace_files.update({
+            'word/document.xml': new_document_xml,
+            'word/_rels/document.xml.rels': xml_rels_path,
+        })
         replace_and_save_document_xml(
             docx_with_broken_citations,
             output_docx_path,
-            {
-                'word/document.xml': new_document_xml,
-                'word/_rels/document.xml.rels': xml_rels_path
-            }
+            repace_files
         )
         await update('last_docx_result', output_docx_path)
         await self.send_msg({
