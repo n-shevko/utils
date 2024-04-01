@@ -14,7 +14,7 @@ class KeyValue(models.Model):
 class Config(models.Model):
     chatgpt_api_key = models.TextField(
         max_length=100,
-        verbose_name='Chatgpt api key',
+        verbose_name='OpenAI api key',
         default=""
     )
     chat_gpt_temperature = models.IntegerField(

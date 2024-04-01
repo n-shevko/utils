@@ -2,12 +2,7 @@
 <template v-if="current_tab === 'script_cleaner'">
 <div class="row my-2">
     <div class="col-12">
-        <template v-if="state.selected_video === ''">
-            Video isn't selected
-        </template>
-        <template v-else>
-            Selected video: {{ state.selected_video }}
-        </template>
+
     </div>
 </div>
 
@@ -15,6 +10,14 @@
     <div class="col-2"></div>
     <div class="col-7">
         <div class="card px-3 py-3">
+            <div class="row my-2">
+                <div class="col-12">
+                    <template v-if="state.selected_video === ''">
+                        Video isn't selected
+                    </template>
+                    <template v-else>{{ state.selected_video }}</template>
+                </div>
+            </div>
             <div class="row my-2">
                 <div class="col-12">
                     <button

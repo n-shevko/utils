@@ -9,6 +9,8 @@ script_cleaner = {
     runChatgpt(answer) {
       if (answer) {
         this.sendMessage({fn: 'run_chatgpt', answer: true, delimeter: this.delimeter});
+      } else {
+        this.unlockRun();
       }
       this.modal.hide();
     },

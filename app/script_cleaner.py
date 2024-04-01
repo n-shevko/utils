@@ -1,6 +1,7 @@
 import os
 import shlex
 import re
+import json
 
 import asyncio
 import aiohttp
@@ -67,8 +68,6 @@ def try_split(delimiter, text, tokens_for_request, encoding, script_cleaner_prom
     return request_is_too_big, input_tokens, out_tokens
 
 
-
-
 async def get_tokens_for_request():
     percent_of_max_tokens_to_use_for_response = int(await get('percent_of_max_tokens_to_use_for_response'))
     tokens_for_request_and_response = 8192
@@ -76,50 +75,55 @@ async def get_tokens_for_request():
     return int(tokens_for_request_and_response * (1 - p))
 
 
-async def call_chatgpt(config, user_message, out_file, tokens_for_response, script_cleaner_prompt):
-    # headers = {
-    #     'Authorization': f'Bearer {config["openai_api_key"]}',
-    #     'Content-Type': 'application/json'
-    # }
-    # payload = {
-    #     "model": "gpt-4",
-    #     "messages": [
-    #         {"role": "system", "content": script_cleaner_prompt},
-    #         {"role": "user", "content": user_message}
-    #     ],
-    #     "temperature": config['chat_gpt_temperature'],
-    #     "max_tokens": tokens_for_response,
-    #     "top_p": config['chat_gpt_top_p'],
-    #     "frequency_penalty": config['chat_gpt_frequency_penalty'],
-    #     "presence_penalty": config['chat_gpt_presence_penalty']
-    # }
-    #
-    # for attempt in range(3):
-    #     async with aiohttp.ClientSession() as session:
-    #         async with session.post('https://api.openai.com/v1/completions', headers=headers, data=json.dumps(payload)) as response:
-    #             if response.status == 200:
-    #                 response = await response.json()
-    #                 break
-    #             else:
-    #                 return {"error": "Failed to fetch response from OpenAI"}
-    #
-    # if response.choices[0].finish_reason == 'length':
-    #     #notify("finish_reason == 'length'\n" + solution)
-    #     return True
-    #
-    # if response.choices[0].finish_reason == 'stop':
-    #     out = response.choices[0].message.content
-    # else:
-    #     out = f"\n\n\nUnusual finish_reason = '{response.choices[0].finish_reason}' for Reqest:\n {system_message}\n\n{user_mesage}\n\nResponse:{response.choices[0].message.content}\n\n\n"
-    #
-    out = 'abc'
-    await asyncio.sleep(0.5)
-    with open(out_file, 'a') as f:
-        f.write(out)
-    return False
-
-
 class Worker(margin_revisions_acceptor.Worker):
+    async def call_chatgpt(self, config, user_message, out_file, tokens_for_response, script_cleaner_prompt):
+        headers = {
+            'Authorization': f'Bearer {config["chatgpt_api_key"]}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            "model": "gpt-4",
+            "messages": [
+                {"role": "system", "content": script_cleaner_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            "temperature": config['chat_gpt_temperature'],
+            "max_tokens": tokens_for_response,
+            "top_p": config['chat_gpt_top_p'],
+            "frequency_penalty": config['chat_gpt_frequency_penalty'],
+            "presence_penalty": config['chat_gpt_presence_penalty']
+        }
+        for attempt in range(3):
+            async with aiohttp.ClientSession() as session:
+                async with session.post('https://api.openai.com/v1/completions', headers=headers,
+                                        data=json.dumps(payload)) as response:
+                    if response.status == 200:
+                        response = await response.json()
+                        break
+                    else:
+                        await self.notify("Failed to fetch response from OpenAI")
+                        return True
+
+        if response['choices'][0]['finish_reason'] == 'length':
+            await self.notify(f"finish_reason == 'length'<br>{solution}")
+            return True
+        if response['choices'][0]['finish_reason'] == 'stop':
+            with open(out_file, 'a') as f:
+                f.write(response['choices'][0]['message']['content'])
+            return False
+        else:
+            await self.notify(f'''Unusual finish_reason = '{response['choices'][0]['finish_reason']}' for Request:
+            <br>{script_cleaner_prompt}
+            <br>{user_message}
+            <br>Response:{response['choices'][0]['message']['content']}''')
+            return True
+
+        # out = 'abc'
+        # await asyncio.sleep(0.5)
+        # with open(out_file, 'a') as f:
+        #     f.write(out)
+        # return False
+
     async def run_chatgpt(self, params):
         if not params['answer']:
             return
@@ -129,10 +133,14 @@ class Worker(margin_revisions_acceptor.Worker):
         folder_path, file_name = os.path.split(tmp)
         formatted_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         with open(os.path.join(folder_path, file_name + '_text_only.txt'), 'r') as file:
-            text = file.read() * 1000
+            text = file.read()# * 1000
 
         delimeter = params['delimeter']
         config = await get_config()
+        if config["chatgpt_api_key"].strip() == '':
+            await self.notify("Please fill in 'OpenAI api key' on 'Settings' tab")
+            return
+
         offset = 0
         sentences = text.split(delimeter)
         # sentences = sentences[0:2]
@@ -170,7 +178,7 @@ class Worker(margin_revisions_acceptor.Worker):
             request = delimeter.join(request)
             tokens_for_response = tokens_for_request_and_response - len(
                 encoding.encode(request + script_cleaner_prompt)) - 100
-            stop = await call_chatgpt(
+            stop = await self.call_chatgpt(
                 config,
                 request,
                 out_file,
@@ -193,11 +201,9 @@ class Worker(margin_revisions_acceptor.Worker):
 
             if (await get(f"stop_{task_id}")) == '1':
                 break
-        if stop:
-            msg = f"Not complete result in file {out_file}<br>{solution}"
-        else:
-            msg = f"Done. Result in file {out_file}"
-        await self.notify(msg)
+
+        if not stop:
+            await self.notify(f"Done. Result in file {out_file}")
 
     async def estimate_cost(self, text):
         encoding = tiktoken.encoding_for_model("gpt-4")
