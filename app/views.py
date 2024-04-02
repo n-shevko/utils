@@ -20,7 +20,7 @@ def main(request):
     with Async() as loop:
         state = loop.run_until_complete(get(fields, force_dict=True))
 
-    images = asyncio.run(get_images_from_folder())
+        images = asyncio.run(get_images_from_folder())
 
     context = {
         'data': {
