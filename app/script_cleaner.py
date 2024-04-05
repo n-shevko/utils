@@ -93,19 +93,23 @@ class Worker(margin_revisions_acceptor.Worker):
             "frequency_penalty": config['chat_gpt_frequency_penalty'],
             "presence_penalty": config['chat_gpt_presence_penalty']
         }
-        for attempt in range(3):
-            async with aiohttp.ClientSession() as session:
-                async with session.post('https://api.openai.com/v1/completions', headers=headers,
-                                        data=json.dumps(payload)) as response:
-                    if response.status == 200:
-                        response = await response.json()
-                        break
-                    else:
-                        await self.notify("Failed to fetch response from OpenAI")
-                        return True
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post('https://api.openai.com/v1/chat/completions', headers=headers,
+                                    data=json.dumps(payload)) as response:
+                if response.status == 200:
+                    response = await response.json()
+                else:
+                    response_as_txt = await response.text()
+                    await self.notify(f'''<pre>Failed to fetch response from OpenAI
+status: {response.status}
+reason: {response.reason}
+{response_as_txt}</pre>
+                    ''', callbacks=['unlockRun'])
+                    return True
 
         if response['choices'][0]['finish_reason'] == 'length':
-            await self.notify(f"finish_reason == 'length'<br>{solution}")
+            await self.notify(f"finish_reason == 'length'<br>{solution}", callbacks=['unlockRun'])
             return True
         if response['choices'][0]['finish_reason'] == 'stop':
             with open(out_file, 'a') as f:
@@ -115,7 +119,7 @@ class Worker(margin_revisions_acceptor.Worker):
             await self.notify(f'''Unusual finish_reason = '{response['choices'][0]['finish_reason']}' for Request:
             <br>{script_cleaner_prompt}
             <br>{user_message}
-            <br>Response:{response['choices'][0]['message']['content']}''')
+            <br>Response:{response['choices'][0]['message']['content']}''', callbacks=['unlockRun'])
             return True
 
         # out = 'abc'
@@ -138,7 +142,10 @@ class Worker(margin_revisions_acceptor.Worker):
         delimeter = params['delimeter']
         config = await get_config()
         if config["chatgpt_api_key"].strip() == '':
-            await self.notify("Please fill in 'OpenAI api key' on 'Settings' tab")
+            await self.notify(
+                "Please fill in 'OpenAI api key' on 'Settings' tab",
+                callbacks=['unlockRun']
+            )
             return
 
         offset = 0
@@ -185,6 +192,9 @@ class Worker(margin_revisions_acceptor.Worker):
                 tokens_for_response,
                 script_cleaner_prompt
             )
+            if stop:
+                break
+
             with open(out_file, 'r') as file:
                 content = file.read()
             await update('script_cleaner_last_answer_gpt', content)
@@ -196,14 +206,11 @@ class Worker(margin_revisions_acceptor.Worker):
                 }
             })
 
-            if stop:
-                break
-
             if (await get(f"stop_{task_id}")) == '1':
                 break
 
         if not stop:
-            await self.notify(f"Done. Result in file {out_file}")
+            await self.notify(f"Done. Result is in file {out_file}", callbacks=['unlockRun'])
 
     async def estimate_cost(self, text):
         encoding = tiktoken.encoding_for_model("gpt-4")
@@ -231,7 +238,7 @@ class Worker(margin_revisions_acceptor.Worker):
                         'delimeter': delimeter,
                         'dialogCallback': 'runChatgpt'
                     },
-                    'callback': 'initModal'
+                    'callbacks': ['initModal']
                 }
             )
         else:
@@ -289,7 +296,9 @@ class Worker(margin_revisions_acceptor.Worker):
                         'progress': 15
                     }
                 })
-                get_text_only(txt_file_path)
+
+        if not os.path.exists(text_only_path(txt_file_path)):
+            get_text_only(txt_file_path)
 
         with open(text_only_path(txt_file_path), 'r') as file:
             await self.estimate_cost(file.read())

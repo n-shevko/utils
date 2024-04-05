@@ -124,7 +124,7 @@ class Common(AsyncWebsocketConsumer):
             'value': {'state': state}
         })
 
-    async def notify(self, msg):
+    async def notify(self, msg, callbacks=[]):
         await self.send_msg({
             'fn': 'update',
             'value': {
@@ -132,7 +132,7 @@ class Common(AsyncWebsocketConsumer):
                 'dialogTitle': 'Notification',
                 'msg': msg
             },
-            'callback': 'initModal'
+            'callbacks': ['initModal'] + callbacks
         })
 
     async def receive(self, text_data):

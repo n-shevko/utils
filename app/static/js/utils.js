@@ -63,8 +63,10 @@ document.addEventListener('DOMContentLoaded', function() {
             this[key] = args.value[key];
           }
         });
-        if (args.callback !== undefined) {
-          this[args.callback]();
+        if (args.callbacks !== undefined) {
+          args.callbacks.forEach(callback => {
+            this[callback]();
+          });
         }
       },
       initModal() {
@@ -118,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       closeFileSelect() {
         $('#jstree').jstree(true).destroy();
-        this.modal.hide();
+        this.hideModal();
       },
       onMessage(event) {
         let request = JSON.parse(event.data);

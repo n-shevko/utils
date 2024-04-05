@@ -9,14 +9,14 @@ script_cleaner = {
     runChatgpt(answer) {
       if (answer) {
         this.sendMessage({fn: 'run_chatgpt', answer: true, delimeter: this.delimeter});
+        this.hideModal();
       } else {
         this.unlockRun();
       }
-      this.modal.hide();
     },
     unlockRun() {
       this.inProgress = false;
-      this.modal.hide();
+      this.hideModal();
     },
     copyResult() {
       navigator.clipboard.writeText(this.state.script_cleaner_last_answer_gpt);
@@ -29,5 +29,10 @@ script_cleaner = {
       this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
       this.inProgress = false;
     },
+  },
+  computed: {
+    script_cleaner_last_answer_gpt() {
+      return this.state.script_cleaner_last_answer_gpt.replace('\n', '<br>');
+    }
   }
 };
