@@ -1,7 +1,8 @@
 ## What it does
 1. Accepts all changes (aka revisions) in document margins of docx file.
    Microsoft Word displays formatting and deletion changes in the margins. 
-3. Recovers EndNote (commercial software) citations that were broken inside docx file.
+2. Recovers EndNote (commercial software) citations that were broken inside docx file.
+3. [Script Cleaner](./script_cleaner.md)
 
 ## How to install it
 1. Install docker
