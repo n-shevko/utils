@@ -44,13 +44,13 @@ script_cleaner = {
     },
     script_cleaner_prompt: {
       get() {
-        return this.state.script_cleaner_model === 'chat_gpt' ? this.state.script_cleaner_prompt_chat_gpt : this.state.script_cleaner_prompt_claude_3;
+        return this.state.script_cleaner_algorithm === 'not_whole_context' ? this.state.script_cleaner_prompt_not_whole_context : this.state.script_cleaner_prompt_whole_context;
       },
       set(value) {
-        if (this.state.script_cleaner_model === 'chat_gpt') {
-          this.state.script_cleaner_prompt_chat_gpt = value;
+        if (this.state.script_cleaner_algorithm === 'not_whole_context') {
+          this.state.script_cleaner_prompt_not_whole_context = value;
         } else {
-          this.state.script_cleaner_prompt_claude_3 = value;
+          this.state.script_cleaner_prompt_whole_context = value;
         }
       }
     }

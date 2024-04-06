@@ -6,10 +6,12 @@ defaults = {
     'script_cleaner': {
         'selected_video': '',
 
-        'script_cleaner_prompt_not_whole_context': 'You will be provided with statements, and your task is to convert them to standard English.',
-        'script_cleaner_prompt_whole_context': '''{text}
+        'script_cleaner_prompt_not_whole_context': '''{chunk}
 
-Convert the text from chunk number {chunk} to standard English. 
+Convert the text above to standard English.''',
+        'script_cleaner_prompt_whole_context': '''{all_chunks}
+
+Convert the text from chunk number {chunk_number} to standard English. 
 Don't shorten the text.''',
         
         'use_existing_files': '1',
@@ -19,7 +21,7 @@ Don't shorten the text.''',
         'script_cleaner_last_answer_gpt': '',
 
         'script_cleaner_model': 'chat_gpt',
-        'algorithm': 'not_whole_context',
+        'script_cleaner_algorithm': 'not_whole_context',
         'claude_max_tokens': '2046'
     },
     'citations_recovering': {

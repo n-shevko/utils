@@ -58,6 +58,16 @@
             </div>
 
             <div class="row my-2">
+                <label for="script_cleaner_algorithm" class="form-check-label col-4">Algorithm</label>
+                <div class="col-3">
+                    <select id="script_cleaner_algorithm" v-model="state.script_cleaner_algorithm" class="form-select" :disabled="inProgress">
+                        <option value="not_whole_context">Cheap</option>
+                        <option value="whole_context">Expensive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row my-2">
                 <template v-if="state.script_cleaner_model === 'chat_gpt'">
                     <label for="percent_of_max_tokens_to_use_for_response" class="col-8 col-form-label">
                         Percent of LLM context to use for response

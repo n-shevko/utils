@@ -50,7 +50,8 @@ async def estimate_cost_claude(self: Common, text):
             return
 
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-    script_cleaner_prompt = await get('script_cleaner_prompt_claude_3')
+    script_cleaner_algorithm = await get('script_cleaner_algorithm')
+    script_cleaner_prompt = await get(f'script_cleaner_prompt_{script_cleaner_algorithm}')
 
     input_context = [script_cleaner_prompt]
     for idx, chunk in enumerate(chunks):
@@ -124,7 +125,9 @@ async def run_claude2(self: Common, params):
         [END_CHUNK_{idx}]''')
 
     input_context = '\n'.join(input_context)
-    script_cleaner_prompt = await get('script_cleaner_prompt_claude_3')
+
+    script_cleaner_algorithm = await get('script_cleaner_algorithm')
+    script_cleaner_prompt = await get(f'script_cleaner_prompt_{script_cleaner_algorithm}')
     headers = {
         'content-type': 'application/json',
         'anthropic-version': '2023-06-01',
@@ -132,8 +135,11 @@ async def run_claude2(self: Common, params):
     }
     stop = False
     limit_reached_times = 0
-    for idx, _ in enumerate(chunks):
-        tmp = script_cleaner_prompt.replace('{text}', input_context).replace('{chunk}', str(idx))
+    for idx, chunk in enumerate(chunks):
+        if script_cleaner_algorithm == 'not_whole_context':
+            tmp = script_cleaner_prompt.replace('{chunk}', chunk)
+        else:
+            tmp = script_cleaner_prompt.replace('{all_chunks}', input_context).replace('{chunk_number}', str(idx))
         data = {
             "model": "claude-3-opus-20240229",
             "max_tokens": 4096,
