@@ -9,9 +9,8 @@ from datetime import datetime
 from app.utils import get_config, Common, get, update
 
 
-async def slpit_by_chunks(text, delimeter):
-    claude_max_tokens = int(await get('claude_max_tokens'))
-    encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+def slpit_by_chunks(text, delimeter, chunk_size, model):
+    encoding = tiktoken.encoding_for_model(model)
     sentenses = text.split(delimeter)
 
     idx = 0
@@ -20,16 +19,16 @@ async def slpit_by_chunks(text, delimeter):
     while idx < len(sentenses):
         sentence = sentenses[idx]
         tokens = len(encoding.encode(delimeter.join(chunk + [sentence])))
-        if tokens <= claude_max_tokens:
+        if tokens <= chunk_size:
             chunk.append(sentence)
-        elif len(encoding.encode(delimeter.join(chunk))) <= claude_max_tokens:
+        elif len(encoding.encode(delimeter.join(chunk))) <= chunk_size:
             chunks.append(chunk)
             chunk = [sentence]
         else:
             return 'chunk_is_too_big', None
         idx += 1
 
-    if len(encoding.encode(delimeter.join(chunk))) <= claude_max_tokens:
+    if len(encoding.encode(delimeter.join(chunk))) <= chunk_size:
         if not chunk:
             return 'empty_result', None
         else:
@@ -40,11 +39,12 @@ async def slpit_by_chunks(text, delimeter):
 
 
 async def estimate_cost_claude(self: Common, text):
+    chunk_size = int(await get('claude_max_tokens'))
     delimeter = '.'
-    flag, chunks = await slpit_by_chunks(text, delimeter)
+    flag, chunks = slpit_by_chunks(text, delimeter, chunk_size, "gpt-3.5-turbo")
     if flag != 'ok':
         delimeter = ' '
-        flag, chunks = await slpit_by_chunks(text, delimeter)
+        flag, chunks = await slpit_by_chunks(text, delimeter, chunk_size, "gpt-3.5-turbo")
         if flag != 'ok':
             await self.notify("Can't estimate price")
             return
@@ -117,7 +117,8 @@ async def run_claude2(self: Common, params):
         }
     })
 
-    _, chunks = await slpit_by_chunks(text, delimeter)
+    chunk_size = int(await get('claude_max_tokens'))
+    _, chunks = slpit_by_chunks(text, delimeter, chunk_size, 'gpt-3.5-turbo')
     input_context = []
     for idx, chunk in enumerate(chunks):
         input_context.append(f'''[START_CHUNK_{idx}]
@@ -206,5 +207,5 @@ async def run_claude2(self: Common, params):
         extra = ''
         if limit_reached_times > 0:
             extra = f'''<br><br>When the model generated answers for {limit_reached_times} chunks it wanted to generate bigger answer
-             but the size of output tokens (4096 tokens) limit it.<br> To avoid such situations you can lower 'Size of chunk' parameter value'''
+             but the size of output tokens (4096 tokens) limited it.<br> To avoid such situations you can lower 'Size of chunk' parameter value'''
         await self.notify(f"Done. Result is in file {out_file}{extra}", callbacks=['unlockRun'])

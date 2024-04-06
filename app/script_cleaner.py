@@ -13,11 +13,8 @@ from datetime import datetime
 from django.conf import settings
 
 from app.utils import get_config, get, update
-from app.claude import estimate_cost_claude, run_claude2
+from app.claude import estimate_cost_claude, run_claude2, slpit_by_chunks
 from app import margin_revisions_acceptor
-
-
-solution = "You can solve this problem by increasing 'Percent of LLM context to use for response'"
 
 
 def text_only_path(path):
@@ -40,35 +37,6 @@ def get_text_only(path):
         f.write(result)
 
 
-def try_split(delimiter, text, tokens_for_request, encoding, script_cleaner_prompt):
-    sentences = text.split(delimiter)
-    offset = 0
-    input_tokens = 0
-    out_tokens = 0
-    request_is_too_big = False
-    while offset < len(sentences):
-        request = []
-        while offset < len(sentences):
-            sentence = sentences[offset]
-            tmp = delimiter.join(request + [script_cleaner_prompt, sentence])
-            cnt = len(encoding.encode(tmp))
-            if cnt <= tokens_for_request:
-                request.append(sentence)
-                offset += 1
-            else:
-                break
-
-        if not request and offset < len(sentences):
-            request_is_too_big = True
-            break
-
-        request = delimiter.join(request)
-        request_input_tokens = len(encoding.encode(request + script_cleaner_prompt))
-        input_tokens += request_input_tokens
-        out_tokens += (8192 - request_input_tokens - 100)
-    return request_is_too_big, input_tokens, out_tokens
-
-
 async def get_tokens_for_request():
     percent_of_max_tokens_to_use_for_response = int(await get('percent_of_max_tokens_to_use_for_response'))
     tokens_for_request_and_response = 8192
@@ -77,57 +45,6 @@ async def get_tokens_for_request():
 
 
 class Worker(margin_revisions_acceptor.Worker):
-    async def call_chatgpt(self, config, user_message, out_file, script_cleaner_prompt):
-        headers = {
-            'Authorization': f'Bearer {config["chatgpt_api_key"]}',
-            'Content-Type': 'application/json'
-        }
-        payload = {
-            "model": "gpt-4",
-            "messages": [
-                {"role": "system", "content": script_cleaner_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            "temperature": config['chat_gpt_temperature'],
-            "top_p": config['chat_gpt_top_p'],
-            "frequency_penalty": config['chat_gpt_frequency_penalty'],
-            "presence_penalty": config['chat_gpt_presence_penalty']
-        }
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post('https://api.openai.com/v1/chat/completions', headers=headers,
-                                    data=json.dumps(payload)) as response:
-                if response.status == 200:
-                    response = await response.json()
-                else:
-                    response_as_txt = await response.text()
-                    await self.notify(f'''<pre>Failed to fetch response from OpenAI
-status: {response.status}
-reason: {response.reason}
-{response_as_txt}</pre>
-                    ''', callbacks=['unlockRun'])
-                    return True
-
-        if response['choices'][0]['finish_reason'] == 'length':
-            await self.notify(f"finish_reason == 'length'<br>{solution}", callbacks=['unlockRun'])
-            return True
-        if response['choices'][0]['finish_reason'] == 'stop':
-            with open(out_file, 'a') as f:
-                f.write(response['choices'][0]['message']['content'])
-            return False
-        else:
-            await self.notify(f'''Unusual finish_reason = '{response['choices'][0]['finish_reason']}' for Request:
-            <br>{script_cleaner_prompt}
-            <br>{user_message}
-            <br>Response:{response['choices'][0]['message']['content']}''', callbacks=['unlockRun'])
-            return True
-
-        # out = 'abc'
-        # await asyncio.sleep(0.5)
-        # with open(out_file, 'a') as f:
-        #     f.write(out)
-        # return False
-
     async def run_chatgpt(self, params):
         if not params['answer']:
             return
@@ -137,9 +54,8 @@ reason: {response.reason}
         folder_path, file_name = os.path.split(tmp)
         formatted_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         with open(os.path.join(folder_path, file_name + '_text_only.txt'), 'r') as file:
-            text = file.read()# * 1000
+            text = file.read()
 
-        delimeter = params['delimeter']
         config = await get_config()
         if config["chatgpt_api_key"].strip() == '':
             await self.notify(
@@ -147,11 +63,6 @@ reason: {response.reason}
                 callbacks=['unlockRun']
             )
             return
-
-        offset = 0
-        sentences = text.split(delimeter)
-        # sentences = sentences[0:2]
-        stop = False
 
         out_file = os.path.join(folder_path, file_name + '_out_' + formatted_datetime + '.txt')
         await update('script_cleaner_last_out_file', out_file)
@@ -165,83 +76,111 @@ reason: {response.reason}
             }
         })
 
-        encoding = tiktoken.encoding_for_model("gpt-4")
-        tokens_for_request = await get_tokens_for_request()
+        chunk_size = await self.get_chunk_size()
+        delimeter = params['delimeter']
+        _, chunks = slpit_by_chunks(text, delimeter, chunk_size, 'gpt-4')
+        headers = {
+            'Authorization': f'Bearer {config["chatgpt_api_key"]}',
+            'Content-Type': 'application/json'
+        }
+        script_cleaner_prompt = await get('script_cleaner_prompt_not_whole_context')
+        limit_reached_times = 0
+        for idx, chunk in enumerate(chunks):
+            tmp = script_cleaner_prompt.replace('{chunk}', chunk)
+            payload = {
+                "model": "gpt-4",
+                "messages": [
+                    {"role": "user", "content": tmp}
+                ],
+                "temperature": config['chat_gpt_temperature'],
+                "top_p": config['chat_gpt_top_p'],
+                "frequency_penalty": config['chat_gpt_frequency_penalty'],
+                "presence_penalty": config['chat_gpt_presence_penalty']
+            }
 
-        script_cleaner_prompt = await get('script_cleaner_prompt_chat_gpt')
-        while offset < len(sentences):
-            request = []
-            while offset < len(sentences):
-                sentence = sentences[offset]
-                tmp = delimeter.join(request + [script_cleaner_prompt, sentence])
-                cnt = len(encoding.encode(tmp))
-                if cnt <= tokens_for_request:
-                    request.append(sentence)
-                    offset += 1
-                else:
-                    break
+            async with aiohttp.ClientSession(timeout=None) as session:
+                async with session.post('https://api.openai.com/v1/chat/completions', headers=headers,
+                                        data=json.dumps(payload), timeout=None) as response:
+                    if response.status == 200:
+                        response = await response.json()
+                    else:
+                        await self.notify(
+                            "Api responded with not 200 status. Try again later",
+                            callbacks=['unlockRun']
+                        )
+                        return
 
-            request = delimeter.join(request)
-            stop = await self.call_chatgpt(
-                config,
-                request,
-                out_file,
-                script_cleaner_prompt
-            )
-            if stop:
-                break
+            with open(out_file, 'a') as f:
+                f.write(response['choices'][0]['message']['content'])
 
             with open(out_file, 'r') as file:
                 content = file.read()
+
             await update('script_cleaner_last_answer_gpt', content)
             await self.send_msg({
                 'fn': 'update',
                 'value': {
                     'state.script_cleaner_last_answer_gpt': content,
-                    'progress': round(((offset + 1) / len(sentences)) * 100)
+                    'progress': round(((idx + 1) / len(chunks)) * 100)
                 }
             })
 
-            stop = (await get(f"stop_{task_id}")) == '1'
-            if stop:
+            if response['choices'][0]['finish_reason'] == 'length':
+                limit_reached_times += 1
+
+            if (await get(f"stop_{task_id}")) == '1':
                 break
 
-        if not stop:
-            await self.notify(f"Done. Result is in file {out_file}", callbacks=['unlockRun'])
+        extra = ''
+        if limit_reached_times > 0:
+            extra = f'''<br><br>When the model generated answers for {limit_reached_times} chunks it wanted to generate bigger answer
+             but the size of output tokens limited it.<br> To avoid such situations you can increase 'Percent of LLM context to use for response' parameter value'''
+
+        await self.notify(f"Done. Result is in file {out_file}{extra}", callbacks=['unlockRun'])
+
+    async def get_chunk_size(self):
+        encoding = tiktoken.encoding_for_model("gpt-4")
+        chunk_size = await get_tokens_for_request()
+        script_cleaner_prompt = await get('script_cleaner_prompt_not_whole_context')
+        chunk_size -= len(encoding.encode(script_cleaner_prompt))
+        return chunk_size
 
     async def estimate_cost_gpt(self, text):
         encoding = tiktoken.encoding_for_model("gpt-4")
-        tokens_for_request = await get_tokens_for_request()
-        script_cleaner_prompt = await get('script_cleaner_prompt_chat_gpt')
-        point_attempt = try_split('.', text, tokens_for_request, encoding, script_cleaner_prompt)
-        space_attempt = try_split(' ', text, tokens_for_request, encoding, script_cleaner_prompt)
-        if (not point_attempt[0]) or (not space_attempt[0]):
-            if not point_attempt[0]:
-                choice = point_attempt
-                delimeter = '.'
-            elif not space_attempt[0]:
-                choice = space_attempt
-                delimeter = ' '
-            input_tokens = choice[1]
-            out_tokens = choice[2]
-            cost = round(((input_tokens / 1000) * 0.03) + ((out_tokens / 1000) * 0.06), 1)
-            await self.send_msg(
-                {
-                    'fn': 'update',
-                    'value': {
-                        'dialogTitle': 'Cost estimation',
-                        'msg': f"Processing by ChatGPT will use <br>{input_tokens} input tokens<br>{out_tokens} output tokens<br>total cost approximately {cost} $<br><br>Dou you want to continue?",
-                        'dialog': 'yes_no_dialog',
-                        'delimeter': delimeter,
-                        'dialogCallback': 'runChatgpt'
-                    },
-                    'callbacks': ['initModal']
-                }
-            )
-        else:
-            await self.notify(
-                f"Can't create request for an sentence. The sentence is too big.<br>You may solve this problem by reducing 'Percent of LLM context to use for response'. If it doesn't help then mail to nicksheuko@gmail.com"
-            )
+
+        chunk_size = await self.get_chunk_size()
+        delimeter = '.'
+        flag, chunks = slpit_by_chunks(text, delimeter, chunk_size, 'gpt-4')
+        if flag != 'ok':
+            delimeter = ' '
+            flag, chunks = slpit_by_chunks(text, delimeter, chunk_size, 'gpt-4')
+
+        if flag != 'ok':
+            await self.notify("Can't estimate price")
+            return
+
+        input_tokens = 0
+        out_tokens = 0
+        script_cleaner_prompt = await get('script_cleaner_prompt_not_whole_context')
+        for chunk in chunks:
+            chunk_in_tokens = len(encoding.encode(chunk))
+            input_tokens += chunk_in_tokens + len(encoding.encode(script_cleaner_prompt))
+            out_tokens += chunk_in_tokens
+
+        cost = round(((input_tokens / 1000) * 0.03) + ((out_tokens / 1000) * 0.06), 2)
+        await self.send_msg(
+            {
+                'fn': 'update',
+                'value': {
+                    'dialogTitle': 'Cost estimation',
+                    'msg': f"Processing by ChatGPT will use <br>{input_tokens} input tokens<br>{out_tokens} output tokens<br>total cost approximately {cost} $<br><br>Dou you want to continue?",
+                    'dialog': 'yes_no_dialog',
+                    'delimeter': delimeter,
+                    'dialogCallback': 'runChatgpt'
+                },
+                'callbacks': ['initModal']
+            }
+        )
 
     async def script_cleaner_run(self, _):
         selected_video = await get('selected_video')

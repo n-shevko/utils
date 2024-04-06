@@ -57,7 +57,7 @@
                 </div>
             </div>
 
-            <div class="row my-2">
+            <div class="row my-2" v-if="state.script_cleaner_model === 'claude_3'">
                 <label for="script_cleaner_algorithm" class="form-check-label col-4">Algorithm</label>
                 <div class="col-3">
                     <select id="script_cleaner_algorithm" v-model="state.script_cleaner_algorithm" class="form-select" :disabled="inProgress">
