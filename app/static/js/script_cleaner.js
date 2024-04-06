@@ -8,6 +8,9 @@ script_cleaner = {
   methods: {
     runChatgpt(answer) {
       if (answer) {
+        if (!this.validPlaceholders()) {
+          return
+        }
         this.sendMessage({fn: 'run_chatgpt', answer: true, delimeter: this.delimeter});
         this.hideModal();
       } else {
@@ -22,8 +25,10 @@ script_cleaner = {
       navigator.clipboard.writeText(this.state.script_cleaner_last_answer_gpt);
     },
     script_cleaner_run() {
-      this.inProgress = true;
-      this.sendMessage({fn: 'script_cleaner_run'})
+      if (this.validPlaceholders()) {
+        this.inProgress = true;
+        this.sendMessage({fn: 'script_cleaner_run'})
+      }
     },
     stopScriptCleaner() {
       this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
@@ -36,6 +41,21 @@ script_cleaner = {
       } else {
         this.unlockRun();
       }
+    },
+    validPlaceholders(){
+      let valid;
+      if (this.state.script_cleaner_algorithm === 'not_whole_context') {
+        valid = this.state.script_cleaner_prompt_not_whole_context.indexOf('{chunk}') !== -1;
+        if (!valid) {
+          alert('Use {chunk} in your prompt');
+        }
+      } else {
+        valid = this.state.script_cleaner_prompt_whole_context.indexOf('{all_chunks}') !== -1 && this.state.script_cleaner_prompt_whole_context.indexOf('{chunk_number}') !== -1
+        if (!valid) {
+          alert('Use {all_chunks} and {chunk_number} in your prompt');
+        }
+      }
+      return valid;
     }
   },
   computed: {
