@@ -50,7 +50,7 @@ async def estimate_cost_claude(self: Common, text):
             return
 
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-    script_cleaner_prompt = await get('script_cleaner_prompt')
+    script_cleaner_prompt = await get('script_cleaner_prompt_claude_3')
 
     input_context = [script_cleaner_prompt]
     for idx, chunk in enumerate(chunks):
@@ -124,7 +124,7 @@ async def run_claude2(self: Common, params):
         [END_CHUNK_{idx}]''')
 
     input_context = '\n'.join(input_context)
-    script_cleaner_prompt = await get('script_cleaner_prompt')
+    script_cleaner_prompt = await get('script_cleaner_prompt_claude_3')
     headers = {
         'content-type': 'application/json',
         'anthropic-version': '2023-06-01',
@@ -157,7 +157,7 @@ async def run_claude2(self: Common, params):
                         response_json = await response.json()
                         break
                     elif response.status == 429:
-                        print('429 rate_limit_error')
+                        print('429 rate_limit_response')
                         await asyncio.sleep(1)
                     else:
                         stop = True
@@ -178,6 +178,8 @@ async def run_claude2(self: Common, params):
 
             with open(out_file, 'r') as f:
                 script_cleaner_last_answer_gpt = f.read()
+
+            await update('script_cleaner_last_answer_gpt', script_cleaner_last_answer_gpt)
 
             await self.send_msg({
                 'fn': 'update',

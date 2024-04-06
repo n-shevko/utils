@@ -40,7 +40,19 @@ script_cleaner = {
   },
   computed: {
     script_cleaner_last_answer_gpt() {
-      return this.state.script_cleaner_last_answer_gpt.replace('\n', '<br>');
+      return this.state.script_cleaner_last_answer_gpt.replace(/\n/g, '<br>');
+    },
+    script_cleaner_prompt: {
+      get() {
+        return this.state.script_cleaner_model === 'chat_gpt' ? this.state.script_cleaner_prompt_chat_gpt : this.state.script_cleaner_prompt_claude_3;
+      },
+      set(value) {
+        if (this.state.script_cleaner_model === 'chat_gpt') {
+          this.state.script_cleaner_prompt_chat_gpt = value;
+        } else {
+          this.state.script_cleaner_prompt_claude_3 = value;
+        }
+      }
     }
   }
 };

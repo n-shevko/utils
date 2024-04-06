@@ -5,7 +5,13 @@ defaults = {
     },
     'script_cleaner': {
         'selected_video': '',
-        'script_cleaner_prompt': 'You will be provided with statements, and your task is to convert them to standard English.',
+
+        'script_cleaner_prompt_chat_gpt': 'You will be provided with statements, and your task is to convert them to standard English.',
+        'script_cleaner_prompt_claude_3': '''{text}
+
+Convert the text from chunk number {chunk} to standard English. 
+Don't shorten the text.''',
+        
         'use_existing_files': '1',
         'percent_of_max_tokens_to_use_for_response': '50',
 

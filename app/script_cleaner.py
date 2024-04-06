@@ -168,7 +168,7 @@ reason: {response.reason}
         encoding = tiktoken.encoding_for_model("gpt-4")
         tokens_for_request = await get_tokens_for_request()
 
-        script_cleaner_prompt = await get('script_cleaner_prompt')
+        script_cleaner_prompt = await get('script_cleaner_prompt_chat_gpt')
         while offset < len(sentences):
             request = []
             while offset < len(sentences):
@@ -212,7 +212,7 @@ reason: {response.reason}
     async def estimate_cost_gpt(self, text):
         encoding = tiktoken.encoding_for_model("gpt-4")
         tokens_for_request = await get_tokens_for_request()
-        script_cleaner_prompt = await get('script_cleaner_prompt')
+        script_cleaner_prompt = await get('script_cleaner_prompt_chat_gpt')
         point_attempt = try_split('.', text, tokens_for_request, encoding, script_cleaner_prompt)
         space_attempt = try_split(' ', text, tokens_for_request, encoding, script_cleaner_prompt)
         if (not point_attempt[0]) or (not space_attempt[0]):
