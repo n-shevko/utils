@@ -131,6 +131,7 @@ async def run_claude2(self: Common, params):
         'x-api-key': config["claude_api_key"]
     }
     stop = False
+    limit_reached_times = 0
     for idx, _ in enumerate(chunks):
         tmp = script_cleaner_prompt.replace('{text}', input_context).replace('{chunk}', str(idx))
         data = {
@@ -170,34 +171,34 @@ async def run_claude2(self: Common, params):
                 "Api responded with not 200 status. Try again later",
                 callbacks=['unlockRun']
             )
+            return
 
-        if response_json['stop_reason'] == 'end_turn':
-            with open(out_file, 'a') as f:
-                f.write(response_json['content'][0]['text'])
+        with open(out_file, 'a') as f:
+            f.write(response_json['content'][0]['text'])
 
-            with open(out_file, 'r') as f:
-                script_cleaner_last_answer_gpt = f.read()
+        with open(out_file, 'r') as f:
+            script_cleaner_last_answer_gpt = f.read()
 
-            await update('script_cleaner_last_answer_gpt', script_cleaner_last_answer_gpt)
+        await update('script_cleaner_last_answer_gpt', script_cleaner_last_answer_gpt)
 
-            await self.send_msg({
-                'fn': 'update',
-                'value': {
-                    'state.script_cleaner_last_answer_gpt': script_cleaner_last_answer_gpt,
-                    'progress': round(((idx + 1) / len(chunks)) * 100)
-                }
-            })
-        else:
-            await self.notify(
-                "Model didn't reach a natural stopping point. To solve this problem try by lowering 'Size of chunk' parameter value",
-                callbacks=['unlockRun']
-            )
-            stop = True
-            break
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'state.script_cleaner_last_answer_gpt': script_cleaner_last_answer_gpt,
+                'progress': round(((idx + 1) / len(chunks)) * 100)
+            }
+        })
+
+        if response_json['stop_reason'] == 'max_tokens':
+            limit_reached_times += 1
 
         stop = (await get(f"stop_{task_id}")) == '1'
         if stop:
             break
 
     if not stop:
-        await self.notify(f"Done. Result is in file {out_file}", callbacks=['unlockRun'])
+        extra = ''
+        if limit_reached_times > 0:
+            extra = f'''<br><br>When the model generated answers for {limit_reached_times} chunks it wanted to generate bigger answer
+             but the size of output tokens (4096 tokens) limit it.<br> To avoid such situations you can lower 'Size of chunk' parameter value'''
+        await self.notify(f"Done. Result is in file {out_file}{extra}", callbacks=['unlockRun'])
