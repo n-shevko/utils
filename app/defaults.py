@@ -12,7 +12,7 @@ Convert the text above to standard English.''',
         'script_cleaner_prompt_whole_context': '''{all_chunks}
 
 Convert the text from chunk number {chunk_number} to standard English. 
-Don't shorten the text.''',
+Pay attention to other chunks as well to gain more context understanding. Don't add your comments.''',
         
         'use_existing_files': '1',
         'percent_of_max_tokens_to_use_for_response': '50',
