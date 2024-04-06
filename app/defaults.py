@@ -10,7 +10,10 @@ defaults = {
         'percent_of_max_tokens_to_use_for_response': '50',
 
         'script_cleaner_last_out_file': '',
-        'script_cleaner_last_answer_gpt': ''
+        'script_cleaner_last_answer_gpt': '',
+
+        'script_cleaner_model': 'chat_gpt',
+        'claude_max_tokens': '4096'
     },
     'citations_recovering': {
         'docx_with_broken_citations': '',

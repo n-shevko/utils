@@ -29,6 +29,14 @@ script_cleaner = {
       this.sendMessage({fn: 'update', key: `stop_${this.taskId}`, value: '1'});
       this.inProgress = false;
     },
+    runClaude3(answer) {
+      if (answer) {
+        this.sendMessage({fn: 'run_claude', answer: true, delimeter: this.delimeter});
+        this.hideModal();
+      } else {
+        this.unlockRun();
+      }
+    }
   },
   computed: {
     script_cleaner_last_answer_gpt() {

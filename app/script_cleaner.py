@@ -13,6 +13,7 @@ from datetime import datetime
 from django.conf import settings
 
 from app.utils import get_config, get, update
+from app.claude import estimate_cost_claude, run_claude2
 from app import margin_revisions_acceptor
 
 
@@ -76,7 +77,7 @@ async def get_tokens_for_request():
 
 
 class Worker(margin_revisions_acceptor.Worker):
-    async def call_chatgpt(self, config, user_message, out_file, tokens_for_response, script_cleaner_prompt):
+    async def call_chatgpt(self, config, user_message, out_file, script_cleaner_prompt):
         headers = {
             'Authorization': f'Bearer {config["chatgpt_api_key"]}',
             'Content-Type': 'application/json'
@@ -88,7 +89,6 @@ class Worker(margin_revisions_acceptor.Worker):
                 {"role": "user", "content": user_message}
             ],
             "temperature": config['chat_gpt_temperature'],
-            "max_tokens": tokens_for_response,
             "top_p": config['chat_gpt_top_p'],
             "frequency_penalty": config['chat_gpt_frequency_penalty'],
             "presence_penalty": config['chat_gpt_presence_penalty']
@@ -167,7 +167,6 @@ reason: {response.reason}
 
         encoding = tiktoken.encoding_for_model("gpt-4")
         tokens_for_request = await get_tokens_for_request()
-        tokens_for_request_and_response = 8192
 
         script_cleaner_prompt = await get('script_cleaner_prompt')
         while offset < len(sentences):
@@ -183,13 +182,10 @@ reason: {response.reason}
                     break
 
             request = delimeter.join(request)
-            tokens_for_response = tokens_for_request_and_response - len(
-                encoding.encode(request + script_cleaner_prompt)) - 100
             stop = await self.call_chatgpt(
                 config,
                 request,
                 out_file,
-                tokens_for_response,
                 script_cleaner_prompt
             )
             if stop:
@@ -206,13 +202,14 @@ reason: {response.reason}
                 }
             })
 
-            if (await get(f"stop_{task_id}")) == '1':
+            stop = (await get(f"stop_{task_id}")) == '1'
+            if stop:
                 break
 
         if not stop:
             await self.notify(f"Done. Result is in file {out_file}", callbacks=['unlockRun'])
 
-    async def estimate_cost(self, text):
+    async def estimate_cost_gpt(self, text):
         encoding = tiktoken.encoding_for_model("gpt-4")
         tokens_for_request = await get_tokens_for_request()
         script_cleaner_prompt = await get('script_cleaner_prompt')
@@ -301,4 +298,12 @@ reason: {response.reason}
             get_text_only(txt_file_path)
 
         with open(text_only_path(txt_file_path), 'r') as file:
-            await self.estimate_cost(file.read())
+            text = file.read()
+        script_cleaner_model = await get('script_cleaner_model')
+        if script_cleaner_model == 'chat_gpt':
+            await self.estimate_cost_gpt(text)
+        else:
+            await estimate_cost_claude(self, text)
+
+    async def run_claude(self, params):
+        await run_claude2(self, params)

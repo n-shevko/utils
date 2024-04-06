@@ -47,17 +47,45 @@
             </div>
 
             <div class="row my-2">
-                <label for="percent_of_max_tokens_to_use_for_response" class="col-8 col-form-label">
-                    Percent of LLM context to use for response
-                </label>
-                <div class="col-2">
-                    <input  class="form-control form-control-sm"
-                            type="number"
-                            id="percent_of_max_tokens_to_use_for_response"
-                            v-model="state.percent_of_max_tokens_to_use_for_response"
-                            :disabled="inProgress"
-                    >
+                <label for="model" class="form-check-label col-4">Model</label>
+                <div class="col-3">
+                    <select id="model" v-model="state.script_cleaner_model" class="form-select" :disabled="inProgress">
+                        <option value="chat_gpt">GPT-4</option>
+                        <option value="claude_3">Claude 3</option>
+                    </select>
                 </div>
+            </div>
+
+            <div class="row my-2">
+                <template v-if="state.script_cleaner_model === 'chat_gpt'">
+                    <label for="percent_of_max_tokens_to_use_for_response" class="col-8 col-form-label">
+                        Percent of LLM context to use for response
+                    </label>
+                    <div class="col-2">
+                        <input  class="form-control form-control-sm"
+                                type="number"
+                                id="percent_of_max_tokens_to_use_for_response"
+                                v-model="state.percent_of_max_tokens_to_use_for_response"
+                                :disabled="inProgress"
+                        >
+                    </div>
+                </template>
+                <template v-else>
+                    <label for="size_of_chunk" class="col-4 col-form-label">
+                        Size of chunk<br>{{state.claude_max_tokens}} tokens
+                    </label>
+                    <div class="col-8">
+                        <input
+                                type="range"
+                                v-model="state.claude_max_tokens"
+                                class="form-range"
+                                id="size_of_chunk"
+                                min="1"
+                                max="4096"
+                                step="1"
+                        >
+                    </div>
+                </template>
             </div>
 
             <div class="row my-2">
