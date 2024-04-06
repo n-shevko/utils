@@ -156,7 +156,7 @@ class Worker(margin_revisions_acceptor.Worker):
             flag, chunks = slpit_by_chunks(text, delimeter, chunk_size, 'gpt-4')
 
         if flag != 'ok':
-            await self.notify("Can't estimate price")
+            await self.notify("Can't estimate price", callbacks=['unlockRun'])
             return
 
         input_tokens = 0
@@ -203,7 +203,7 @@ class Worker(margin_revisions_acceptor.Worker):
             )
             await process.communicate()
             if process.returncode != 0:
-                await self.notify('Audio extraction failed')
+                await self.notify('Audio extraction failed', callbacks=['unlockRun'])
                 return
 
         await self.send_msg({
@@ -223,7 +223,7 @@ class Worker(margin_revisions_acceptor.Worker):
             )
             await process.communicate()
             if process.returncode != 0:
-                await self.notify('Extracting text from audio failed')
+                await self.notify('Extracting text from audio failed', callbacks=['unlockRun'])
                 return
             else:
                 await self.send_msg({

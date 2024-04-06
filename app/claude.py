@@ -46,7 +46,7 @@ async def estimate_cost_claude(self: Common, text):
         delimeter = ' '
         flag, chunks = await slpit_by_chunks(text, delimeter, chunk_size, "gpt-3.5-turbo")
         if flag != 'ok':
-            await self.notify("Can't estimate price")
+            await self.notify("Can't estimate price", callbacks=['unlockRun'])
             return
 
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
