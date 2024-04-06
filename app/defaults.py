@@ -19,7 +19,7 @@ Don't shorten the text.''',
         'script_cleaner_last_answer_gpt': '',
 
         'script_cleaner_model': 'chat_gpt',
-        'claude_max_tokens': '4096'
+        'claude_max_tokens': '2046'
     },
     'citations_recovering': {
         'docx_with_broken_citations': '',

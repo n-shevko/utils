@@ -146,13 +146,12 @@ async def run_claude2(self: Common, params):
         }
 
         stopped_by_button = False
-        async with aiohttp.ClientSession() as session:
-            while True:
-                stopped_by_button = (await get(f"stop_{task_id}")) == '1'
-                if stopped_by_button:
-                    break
-
-                async with session.post("https://api.anthropic.com/v1/messages", headers=headers, json=data) as response:
+        while True:
+            stopped_by_button = (await get(f"stop_{task_id}")) == '1'
+            if stopped_by_button:
+                break
+            async with aiohttp.ClientSession(timeout=None) as session:
+                async with session.post("https://api.anthropic.com/v1/messages", headers=headers, json=data, timeout=None) as response:
                     if response.status == 200:
                         response_json = await response.json()
                         break
