@@ -1,6 +1,7 @@
 import aiohttp
 import tiktoken
 import os
+import asyncio
 
 from uuid import uuid4
 from datetime import datetime
@@ -124,7 +125,6 @@ async def run_claude2(self: Common, params):
 
     input_context = '\n'.join(input_context)
     script_cleaner_prompt = await get('script_cleaner_prompt')
-    claude_max_tokens = int(await get('claude_max_tokens'))
     headers = {
         'content-type': 'application/json',
         'anthropic-version': '2023-06-01',
@@ -132,28 +132,39 @@ async def run_claude2(self: Common, params):
     }
     stop = False
     for idx, _ in enumerate(chunks):
+        tmp = script_cleaner_prompt.replace('{text}', input_context).replace('{chunk}', str(idx))
         data = {
             "model": "claude-3-opus-20240229",
-            "max_tokens": claude_max_tokens,
+            "max_tokens": 4096,
             "temperature": config['claude_temperature'],
             "messages": [
                 {
                     "role": "user",
-                    "content": f"{input_context}\n\n{script_cleaner_prompt}"
-                },
-                {
-                    "role": "assistant",
-                    "content": f"The following text is the answer only for the chunk number {idx}:"
+                    "content": tmp
                 }
             ]
         }
+
+        stopped_by_button = False
         async with aiohttp.ClientSession() as session:
-            for attempt in range(3):
+            while True:
+                stopped_by_button = (await get(f"stop_{task_id}")) == '1'
+                if stopped_by_button:
+                    break
+
                 async with session.post("https://api.anthropic.com/v1/messages", headers=headers, json=data) as response:
-                    if response.status != 200 and attempt == 2:
+                    if response.status == 200:
+                        response_json = await response.json()
+                        break
+                    elif response.status == 429:
+                        print('429 rate_limit_error')
+                        await asyncio.sleep(1)
+                    else:
                         stop = True
                         break
-                    response_json = await response.json()
+
+        if stopped_by_button:
+            break
 
         if stop:
             await self.notify(
