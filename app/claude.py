@@ -65,10 +65,17 @@ async def estimate_cost_claude(self: Common, text):
     dollars_per_output_token = 75 / 1000000
     total_out_tokens = 0
     for chunk in chunks:
-        estimated_out_tokens = len(encoding.encode(chunk))
-        total_out_tokens += estimated_out_tokens
-    input_tokens_price = len(chunks) * input_context_tokens * dollars_per_input_token
+        total_out_tokens += len(encoding.encode(chunk))
     out_tokens_price = total_out_tokens * dollars_per_output_token
+
+    if script_cleaner_algorithm == 'not_whole_context':
+        input_tokens = 0
+        for chunk in chunks:
+            input_tokens += len(encoding.encode(script_cleaner_prompt.replace('{chunk}', chunk)))
+        input_tokens_price = input_tokens * dollars_per_input_token
+    else:
+        input_tokens_price = len(chunks) * input_context_tokens * dollars_per_input_token
+
     total_price = round(input_tokens_price + out_tokens_price, 2)
     await self.send_msg(
         {
