@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from app.models import Config
+from app.models import Config, Step
 
 
 class ConfigAdmin(admin.ModelAdmin):
@@ -20,7 +20,16 @@ class ConfigAdmin(admin.ModelAdmin):
                 'claude_temperature'
             ),
         }),
+        ('Dall-e', {
+            'fields': (
+                'dall_e_quality',
+                'dall_e_size',
+                'dall_e_style',
+                'dall_e_show_last_images'
+            )
+        })
     )
 
 
 admin.site.register(Config, ConfigAdmin)
+admin.site.register(Step)

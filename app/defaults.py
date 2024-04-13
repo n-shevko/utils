@@ -30,14 +30,8 @@ Pay attention to other chunks as well to gain more context understanding. Don't 
         'last_docx_result': ''
     },
     'text_image_feedback_spiral': {
-        'text_image_feedback_spiral_chat_gpt_max_tokens': '1000',
-        'dall_e_prompt': 'Draw 3 circles',
-        'dall_e_model': 'dall-e-3',
-        'dall_e_size': '1024x1024',
-        'dall_e_quality': 'standard',
-        'dall_e_n': '1',
-        'suggest_changes_prompt': 'What do you think it is better change in this image? Make your suggestions as prompt'
-                                  ' to dalle 3. Provide only suggestions as not numbered list and without '
-                                  'any other text.'
+        'dalle_request': 'Draw 3 circles',
+        'suggest_changes_request': '''What do you think it is better change in this image? Make your suggestions as prompt to dalle 3.
+Provide only suggestions as not numbered list and without any other text.'''
     }
 }

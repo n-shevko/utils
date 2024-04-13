@@ -5,6 +5,15 @@ script_cleaner = {
     inProgress: false,
     taskId: null
   },
+  watch: {
+    'state.script_cleaner_model': {
+      handler(newValue, oldValue) {
+        if (newValue === 'chat_gpt') {
+          this.state.script_cleaner_algorithm = 'not_whole_context';
+        }
+      }
+    }
+  },
   methods: {
     runChatgpt(answer) {
       if (answer) {
@@ -60,7 +69,11 @@ script_cleaner = {
   },
   computed: {
     script_cleaner_last_answer_gpt() {
-      return this.state.script_cleaner_last_answer_gpt.replace(/\n/g, '<br>');
+      if (this.state.script_cleaner_last_answer_gpt === undefined) {
+        return '';
+      } else {
+        return this.state.script_cleaner_last_answer_gpt.replace(/\n/g, '<br>');
+      }
     },
     script_cleaner_prompt: {
       get() {

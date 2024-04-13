@@ -1,4 +1,3 @@
-import asyncio
 import os
 
 from django.shortcuts import render
@@ -8,7 +7,6 @@ from django.conf import settings
 from app.models import KeyValue
 from app.utils import get_config_sync, get, Async
 from app.defaults import defaults
-from app.text_image_feedback_spiral import get_images_from_folder
 
 
 def main(request):
@@ -19,9 +17,6 @@ def main(request):
     fields = defaults.get(current_tab, {}).keys()
     with Async() as loop:
         state = loop.run_until_complete(get(fields, force_dict=True))
-
-        images = asyncio.run(get_images_from_folder())
-
     context = {
         'data': {
             'current_tab': current_tab,
@@ -32,8 +27,7 @@ def main(request):
                 {'name': 'script_cleaner', 'label': 'Script cleaner'},
                 {'name': 'text_image_feedback_spiral', 'label': 'Text-image feedback spiral'},
                 {'name': 'settings', 'label': 'Settings'}
-            ],
-            'images': images
+            ]
         }
     }
 

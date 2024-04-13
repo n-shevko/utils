@@ -1,107 +1,178 @@
 import os
+
 import aiohttp
-import asyncio
-import aiofiles
-from pathlib import Path
-from datetime import datetime
-from openai import AsyncOpenAI
+import json
+import uuid
+
+from django.conf import settings
+
+from app import script_cleaner
+
+from app.utils import db, get_config, get, update
+from app.models import Step
+
+from channels.db import database_sync_to_async
 
 
-async def create_openai_client(api_key):
-    client = AsyncOpenAI(api_key=api_key)
-    return client
+@database_sync_to_async
+def create_step():
+    step = Step()
+    step.save()
+    return step.id
 
 
-async def generate_image_url(client):
-    response = await client.images.generate(model="dall-e-3", prompt="draw 3 circles", size="1024x1024",
-                                            quality="standard", n=1)
-    image_url = response.data[0].url
-    print(image_url)
-    return image_url
+@database_sync_to_async
+def get_last_steps(n):
+    urls = []
+    for step in Step.objects.order_by('-created_at')[:n]:
+        urls.append(step.dalle_response.url)
+    return urls
 
 
-async def download_and_save_image(image_url, is_docker_prod=None):
-    try:
-        if is_docker_prod:
-            # Если запущено в Docker в режиме prod, сохраняем изображения в папку service_data
-            service_data_path = os.getenv('USER_DATA')
-            if service_data_path is None:
-                print("Переменная окружения USER_DATA не установлена")
-                return
-
-            out_folder = service_data_path
-        else:
-            # Если не запущено в Docker в режиме prod, сохраняем изображения в локальную папку service_data
-            current_directory = await asyncio.to_thread(str, Path.cwd())
-            out_folder = await asyncio.to_thread(os.path.join, current_directory, str('service_data'))
-
-        await asyncio.to_thread(os.makedirs, out_folder, exist_ok=True, mode=0o777)
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as response:
-                if response.status == 200:
-                    extension = image_url.split('?')[0].split('.')[-1]
-                    print(extension)
-                    now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-                    filename = f"dalle_response_{now}.{extension}"
-                    async with aiofiles.open(os.path.join(out_folder, filename), "wb") as file:
-                        while True:
-                            chunk = await response.content.read(1024)
-                            if not chunk:
-                                break
-                            await file.write(chunk)
-    except Exception as e:
-        print(f"An error occurred while saving image: {e}")
-
-
-async def get_images_from_folder(is_docker_prod=None):
-    try:
-        if is_docker_prod:
-            service_data_path = os.getenv('USER_DATA')
-            if service_data_path is None:
-                print("Переменная окружения USER_DATA не установлена")
-                return []
-
-            service_data_folder = os.path.join(service_data_path, 'service_data')
-        else:
-            current_directory = await asyncio.to_thread(Path.cwd)
-            app_folder = await asyncio.to_thread(current_directory.joinpath, "app")
-            service_data_folder = await asyncio.to_thread(app_folder.joinpath, "service_data")
-
-        files = await asyncio.to_thread(os.listdir, service_data_folder)
-
-        images = await asyncio.gather(*[
-            asyncio.to_thread(os.path.join, service_data_folder, file)
-            for file in files
-            if await asyncio.to_thread(os.path.isfile, os.path.join(service_data_folder, file))
-        ])
-
-        return images
-    except Exception as e:
-        print(f"An error occurred while getting images from folder: {e}")
-        return []
-
-
-async def ask_chatgpt_for_feedback(client, image_url, prompt):
-    chatgpt_settings = {
-        "model": "gpt-4-vision-preview",
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": image_url},
-                    },
-                    {
-                        "type": "text",
-                        "text": prompt,
-                    }
-                ]
+class Worker(script_cleaner.Worker):
+    async def get_feedback_spiral_context(self, _):
+        config = await get_config()
+        last_steps = await get_last_steps(config["dall_e_show_last_images"])
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'last_steps': last_steps,
             }
-        ]
-    }
-    response = await client.chat.completions.create(**chatgpt_settings)
-    feedback = response.choices[0].message.content
-    print(feedback)
-    return feedback
+        })
+
+    async def step(self, _):
+        config = await get_config()
+        if config["chatgpt_api_key"].strip() == '':
+            await self.notify(
+                "Please fill in 'OpenAI api key' on 'Settings' tab",
+                callbacks=['unlockRun']
+            )
+            return
+
+        url = 'https://api.openai.com/v1/images/generations'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {config["chatgpt_api_key"]}'
+        }
+        original_prompt = await get('dalle_request')
+        data = {
+            'model': 'dall-e-3',
+            'prompt': original_prompt,
+            'n': 1,
+            'size': config['dall_e_size'],
+            'quality': config['dall_e_quality'],
+            'style': config['dall_e_style'],
+            'response_format': 'url'
+        }
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'progress': 10
+            }
+        })
+        async with aiohttp.ClientSession(timeout=None) as session:
+            async with session.post(url, json=data, headers=headers, timeout=None) as response:
+                response_json = await response.json()
+
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'progress': 50
+            }
+        })
+
+        unique_id = str(uuid.uuid4())
+        file_name = f'{unique_id}.png'
+        path = os.path.join(settings.MEDIA_ROOT, file_name)
+
+        url = response_json['data'][0]['url']
+        async with aiohttp.ClientSession(timeout=None) as session:
+            async with session.get(url, timeout=None) as response:
+                if response.status == 200:
+                    with open(path, 'wb') as file:
+                        file.write(await response.read())
+                else:
+                    await self.notify(
+                        "Can't download image from dalle. Try again later",
+                        callbacks=['unlockRun']
+                    )
+                    return
+
+        revised_prompt = response_json['data'][0]['revised_prompt']
+        id = await create_step()
+        suggest_changes_request = await get('suggest_changes_request')
+        async with db() as c:
+            await c.execute(
+                'UPDATE app_step SET dalle_request = %s, revised_prompt = %s, dalle_response=%s, suggest_changes_request=%s WHERE id=%s',
+                (original_prompt, revised_prompt, file_name, suggest_changes_request, id)
+            )
+
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'progress': 75,
+                'last_steps': await get_last_steps(config["dall_e_show_last_images"])
+            }
+        })
+
+        # https://platform.openai.com/docs/api-reference/images
+        payload = {
+            "model": "gpt-4-turbo",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            'type': 'text',
+                            'text': suggest_changes_request
+                        },
+                        {
+                            'type': 'image_url',
+                            'image_url': {
+                                'url': url
+                            }
+                        }
+                    ]
+                }
+            ],
+            "temperature": config['chat_gpt_temperature'],
+            "top_p": config['chat_gpt_top_p'],
+            "frequency_penalty": config['chat_gpt_frequency_penalty'],
+            "presence_penalty": config['chat_gpt_presence_penalty']
+        }
+
+        async with aiohttp.ClientSession(timeout=None) as session:
+            async with session.post('https://api.openai.com/v1/chat/completions', headers=headers,
+                                    data=json.dumps(payload), timeout=None) as response:
+                if response.status == 200:
+                    response = await response.json()
+                else:
+                    await self.notify(
+                        "Chat Gpt api responded with not 200 status. Try again later",
+                        callbacks=['unlockRun']
+                    )
+                    return
+
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'progress': 100
+            }
+        })
+
+        suggest_changes_response = response['choices'][0]['message']['content']
+        async with db() as c:
+            await c.execute(
+                'UPDATE app_step SET suggest_changes_response=%s WHERE id=%s',
+                (suggest_changes_response, id)
+            )
+
+        new_create_image_prompt = f'{original_prompt}\n{suggest_changes_response}'
+        await update('dalle_request', new_create_image_prompt)
+        await self.send_msg({
+            'fn': 'update',
+            'value': {
+                'state.dalle_request': new_create_image_prompt
+            },
+            'callbacks': ['setInprogressFalse']
+        })

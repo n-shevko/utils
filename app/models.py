@@ -78,6 +78,44 @@ Note that even with temperature of 0.0, the results will not be fully determinis
         '''
     )
 
+    dall_e_quality = models.CharField(
+        max_length=100,
+        verbose_name='Quality',
+        choices=(
+            ('standard', 'standard'),
+            ('hd', 'hd')
+        ),
+        default='standard',
+        help_text='''The quality of the image that will be generated.
+         hd creates images with finer details and greater consistency across the image.'''
+    )
+    dall_e_size = models.CharField(
+        max_length=100,
+        verbose_name='Image size',
+        choices=(
+            ('1024x1024', '1024x1024'),
+            ('1792x1024', '1792x1024'),
+            ('1024x1792', '1024x1792')
+        ),
+        default='1024x1024'
+    )
+    dall_e_style = models.CharField(
+        max_length=100,
+        verbose_name='Style',
+        choices=(
+            ('vivid', 'vivid'),
+            ('natural', 'natural')
+        ),
+        default='vivid',
+        help_text='''The style of the generated images. Must be one of vivid or natural. 
+        Vivid causes the model to lean towards generating hyper-real and dramatic images.
+        Natural causes the model to produce more natural, less hyper-real looking images. '''
+    )
+    dall_e_show_last_images = models.IntegerField(
+        verbose_name='Show last images',
+        default=5
+    )
+
     class Meta:
         verbose_name = 'Settings'
         verbose_name_plural = 'Settings'
@@ -89,10 +127,15 @@ Note that even with temperature of 0.0, the results will not be fully determinis
 class Step(models.Model):
     dalle_request = models.TextField(
         max_length=100000,
-        verbose_name='DALL-E prompt to generate image'
+        verbose_name='DALL-E prompt to generate image',
+    )
+    revised_prompt = models.TextField(
+        max_length=100000,
+        verbose_name='Revised DALL-E prompt',
+        help_text='The prompt that was used to generate the image, if there was any revision to the prompt.'
     )
     dalle_response = models.ImageField(
-        storage=FileSystemStorage(location=settings.FILES_FOLDER)
+        storage=FileSystemStorage(location=settings.MEDIA_ROOT)
     )
     suggest_changes_request = models.TextField(
         max_length=20000,

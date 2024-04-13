@@ -60,10 +60,14 @@
             <div class="row my-2" v-if="state.script_cleaner_model === 'claude_3'">
                 <label for="script_cleaner_algorithm" class="form-check-label col-4">Algorithm</label>
                 <div class="col-3">
-                    <select id="script_cleaner_algorithm" v-model="state.script_cleaner_algorithm" class="form-select" :disabled="inProgress">
+                    <select aria-describedby="script_cleaner_algorithm_help" id="script_cleaner_algorithm" v-model="state.script_cleaner_algorithm" class="form-select" :disabled="inProgress">
                         <option value="not_whole_context">Cheap</option>
                         <option value="whole_context">Expensive</option>
                     </select>
+                </div>
+                <div v-if="state.script_cleaner_algorithm === 'whole_context'" id="script_cleaner_algorithm_help" class="form-text">
+                    Without something like "Pay attention to other chunks as well to gain more context understanding"
+                    inside the prompt, this algorithm may not make any sense.
                 </div>
             </div>
 

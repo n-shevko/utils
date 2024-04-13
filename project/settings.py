@@ -136,13 +136,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-FILES_FOLDER = '/home/nikos/data'
-
 ASGI_APPLICATION = "project.asgi.application"
 
-STATIC_ROOT = '/home/nikos/seafile/seafile/project/app/static'
+if prod:
+    MEDIA_ROOT = '/service_data/media'
+else:
+    MEDIA_ROOT = os.path.join(os.path.expanduser('~'), 'media')
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'app', 'service_data')
+if not os.path.exists(MEDIA_ROOT):
+    os.makedirs(MEDIA_ROOT)
 
 MEDIA_URL = '/media/'
 

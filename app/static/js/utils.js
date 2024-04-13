@@ -41,6 +41,12 @@ document.addEventListener('DOMContentLoaded', function() {
     created: function () {
       this.ws = new WebSocket(`ws://${window.location.host}/ws/worker`);
       this.ws.onmessage = this.onMessage;
+      let self = this;
+      this.ws.onopen = function () {
+        if (self[self.current_tab] !== undefined) {
+          self[self.current_tab]();
+        }
+      }
     },
     mounted: function () {
       let self = this;
@@ -107,6 +113,9 @@ document.addEventListener('DOMContentLoaded', function() {
         this.sendMessage({fn: 'update', key: 'current_tab', value: name});
         this.current_tab = name;
         this.sendMessage({fn: 'get_state', current_tab: name});
+        if (this[this.current_tab] !== undefined) {
+          this[this.current_tab]();
+        }
       },
       sendMessage(msg) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
