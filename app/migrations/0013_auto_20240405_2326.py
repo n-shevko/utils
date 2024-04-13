@@ -2,13 +2,9 @@
 
 from django.db import migrations
 
-from app.models import Config
-
 
 def forward_func(apps, schema_editor):
-    config = Config.objects.all().first()
-    config.claude_temperature = 1.0
-    config.save()
+    pass
 
 
 class Migration(migrations.Migration):
