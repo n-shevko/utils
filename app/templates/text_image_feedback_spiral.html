@@ -6,7 +6,7 @@
                 <div class="row my-2">
                     <div class="col-12">
                         <div class="form-floating">
-                            <textarea id="dalle_request" class="form-control" style="height: 350px" v-model="state.dalle_request" :disabled="inProgress">
+                            <textarea id="dalle_request" class="form-control" style="height: 350px" v-model="state.dalle_request" :disabled="spiralInProgress">
                             </textarea>
                             <label for="dalle_request">Dall-e request to generate image</label>
                         </div>
@@ -15,23 +15,23 @@
                 <div class="row my-2">
                     <div class="col-12">
                         <div class="form-floating">
-                            <textarea class="form-control" id="suggest_changes_request" style="height: 150px" v-model="state.suggest_changes_request" :disabled="inProgress">
+                            <textarea class="form-control" id="suggest_changes_request" style="height: 150px" v-model="state.suggest_changes_request" :disabled="spiralInProgress">
                             </textarea>
                             <label for="suggest_changes_request">Suggest changes prompt to ChatGPT</label>
                         </div>
                     </div>
                 </div>
 
-                <div class="row my-2 justify-content-center" v-if="inProgress">
+                <div class="row my-2 justify-content-center" v-if="spiralInProgress">
                     <div class="col-12">
                         <div class="progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated"
                                  role="progressbar"
-                                 :style="{ width: progress + '%' }"
-                                 :aria-valuenow="progress"
+                                 :style="{ width: spiralProgress + '%' }"
+                                 :aria-valuenow="spiralProgress"
                                  aria-valuemin="0"
                                  aria-valuemax="100">
-                                {{progress}}%
+                                {{spiralProgress}}%
                             </div>
                         </div>
                     </div>
@@ -46,7 +46,7 @@
                                 type="number"
                                 id="steps"
                                 v-model="state.steps"
-                                :disabled="inProgress"
+                                :disabled="spiralInProgress"
                         >
                     </div>
                 </div>
@@ -55,7 +55,7 @@
                     <div class="col-auto">
                         <button type="button"
                                 class="btn btn-primary"
-                                :disabled="inProgress"
+                                :disabled="spiralInProgress"
                                 @click.prevent="step">
                             Run
                         </button>

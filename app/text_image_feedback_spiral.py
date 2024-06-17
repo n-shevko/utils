@@ -64,7 +64,7 @@ class Worker(script_cleaner.Worker):
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'progress': round(start + progress_delta * (1/3))
+                'spiralProgress': round(start + progress_delta * (1/3))
             }
         })
 
@@ -95,7 +95,7 @@ class Worker(script_cleaner.Worker):
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'progress': round(start + progress_delta * (2/3)),
+                'spiralProgress': round(start + progress_delta * (2/3)),
                 'last_steps': await get_last_steps(config["dall_e_show_last_images"])
             }
         })
@@ -140,7 +140,7 @@ class Worker(script_cleaner.Worker):
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'progress': round(start + progress_delta)
+                'spiralProgress': round(start + progress_delta)
             }
         })
 
