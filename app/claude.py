@@ -104,14 +104,6 @@ async def run_claude2(self: Common, params):
         text = file.read()
 
     delimeter = params['delimeter']
-    config = await get_config()
-    if config["claude_api_key"].strip() == '':
-        await self.notify(
-            "Please fill in 'Claude api key' on 'Settings' tab",
-            callbacks=['unlockRun']
-        )
-        return
-
     out_file = os.path.join(folder_path, file_name + '_out_' + formatted_datetime + '.txt')
     await update('script_cleaner_last_out_file', out_file)
 
@@ -136,6 +128,7 @@ async def run_claude2(self: Common, params):
 
     script_cleaner_algorithm = await get('script_cleaner_algorithm')
     script_cleaner_prompt = await get(f'script_cleaner_prompt_{script_cleaner_algorithm}')
+    config = await get_config()
     headers = {
         'content-type': 'application/json',
         'anthropic-version': '2023-06-01',

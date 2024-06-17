@@ -57,13 +57,6 @@ class Worker(margin_revisions_acceptor.Worker):
             text = file.read()
 
         config = await get_config()
-        if config["chatgpt_api_key"].strip() == '':
-            await self.notify(
-                "Please fill in 'OpenAI api key' on 'Settings' tab",
-                callbacks=['unlockRun']
-            )
-            return
-
         out_file = os.path.join(folder_path, file_name + '_out_' + formatted_datetime + '.txt')
         await update('script_cleaner_last_out_file', out_file)
 
@@ -183,6 +176,23 @@ class Worker(margin_revisions_acceptor.Worker):
         )
 
     async def script_cleaner_run(self, _):
+        model = await get('script_cleaner_model')
+        config = await get_config()
+        if model == 'chat_gpt':
+            if config["chatgpt_api_key"].strip() == '':
+                await self.notify(
+                    "Please fill in 'OpenAI api key' on 'Settings' tab",
+                    callbacks=['unlockRun']
+                )
+                return
+        elif model == 'claude_3':
+            if config["claude_api_key"].strip() == '':
+                await self.notify(
+                    "Please fill in 'Claude api key' on 'Settings' tab",
+                    callbacks=['unlockRun']
+                )
+                return
+
         selected_video = await get('selected_video')
         folder_path, file_name = os.path.split(selected_video)
 
