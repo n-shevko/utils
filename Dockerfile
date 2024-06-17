@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 RUN apt-get update
 RUN apt-get install -y git
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server=8.0.36-0ubuntu0.22.04.1
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server=8.0.37-0ubuntu0.22.04.3
 
 RUN apt-get update
 RUN apt-get install -y curl ffmpeg
