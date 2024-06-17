@@ -40,21 +40,7 @@ class Worker(script_cleaner.Worker):
             }
         })
 
-    async def step(self, _):
-        config = await get_config()
-        if config["chatgpt_api_key"].strip() == '':
-            await self.notify(
-                "Please fill in 'OpenAI api key' on 'Settings' tab",
-                callbacks=['unlockRun']
-            )
-            return
-
-        url = 'https://api.openai.com/v1/images/generations'
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {config["chatgpt_api_key"]}'
-        }
-        original_prompt = await get('dalle_request')
+    async def do_step(self, original_prompt, config, suggest_changes_request, start, finish):
         data = {
             'model': 'dall-e-3',
             'prompt': original_prompt,
@@ -64,20 +50,21 @@ class Worker(script_cleaner.Worker):
             'style': config['dall_e_style'],
             'response_format': 'url'
         }
-        await self.send_msg({
-            'fn': 'update',
-            'value': {
-                'progress': 10
-            }
-        })
+        url = 'https://api.openai.com/v1/images/generations'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {config["chatgpt_api_key"]}'
+        }
+
         async with aiohttp.ClientSession(timeout=None) as session:
             async with session.post(url, json=data, headers=headers, timeout=None) as response:
                 response_json = await response.json()
 
+        progress_delta = finish - start
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'progress': 50
+                'progress': round(start + progress_delta * (1/3))
             }
         })
 
@@ -93,14 +80,12 @@ class Worker(script_cleaner.Worker):
                         file.write(await response.read())
                 else:
                     await self.notify(
-                        "Can't download image from dalle. Try again later",
-                        callbacks=['unlockRun']
+                        "Can't download image from dalle. Try again later"
                     )
                     return
 
         revised_prompt = response_json['data'][0]['revised_prompt']
         id = await create_step()
-        suggest_changes_request = await get('suggest_changes_request')
         async with db() as c:
             await c.execute(
                 'UPDATE app_step SET dalle_request = %s, revised_prompt = %s, dalle_response=%s, suggest_changes_request=%s WHERE id=%s',
@@ -110,7 +95,7 @@ class Worker(script_cleaner.Worker):
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'progress': 75,
+                'progress': round(start + progress_delta * (2/3)),
                 'last_steps': await get_last_steps(config["dall_e_show_last_images"])
             }
         })
@@ -148,15 +133,14 @@ class Worker(script_cleaner.Worker):
                     response = await response.json()
                 else:
                     await self.notify(
-                        "Chat Gpt api responded with not 200 status. Try again later",
-                        callbacks=['unlockRun']
+                        "Chat Gpt api responded with not 200 status. Try again later"
                     )
                     return
 
         await self.send_msg({
             'fn': 'update',
             'value': {
-                'progress': 100
+                'progress': round(start + progress_delta)
             }
         })
 
@@ -173,6 +157,34 @@ class Worker(script_cleaner.Worker):
             'fn': 'update',
             'value': {
                 'state.dalle_request': new_create_image_prompt
-            },
-            'callbacks': ['setInprogressFalse']
+            }
+        })
+        return new_create_image_prompt
+
+    async def step(self, _):
+        config = await get_config()
+        if config["chatgpt_api_key"].strip() == '':
+            await self.notify(
+                "Please fill in 'OpenAI api key' on 'Settings' tab",
+                callbacks=['unlockRun']
+            )
+            return
+
+        original_prompt = await get('dalle_request')
+        suggest_changes_request = await get('suggest_changes_request')
+        steps = int(await get('steps'))
+        for step_num in range(steps):
+            step_num += 1
+            original_prompt = await self.do_step(
+                original_prompt,
+                config,
+                suggest_changes_request,
+                100 * ((step_num - 1) / steps),
+                100 * (step_num / steps)
+            )
+            if original_prompt is None:
+                break
+
+        await self.send_msg({
+            'fn': 'setInprogressFalse'
         })

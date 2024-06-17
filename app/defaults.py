@@ -32,6 +32,7 @@ Pay attention to other chunks as well to gain more context understanding. Don't 
     'text_image_feedback_spiral': {
         'dalle_request': 'Draw 3 circles',
         'suggest_changes_request': '''What do you think it is better change in this image? Make your suggestions as prompt to dalle 3.
-Provide only suggestions as not numbered list and without any other text.'''
+Provide only suggestions as not numbered list and without any other text.''',
+        'steps': '1'
     }
 }

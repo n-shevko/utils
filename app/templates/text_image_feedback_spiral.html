@@ -37,13 +37,27 @@
                     </div>
                 </div>
 
+                <div class="row my-2">
+                    <label for="steps" class="col-2 col-form-label">
+                        Steps number
+                    </label>
+                    <div class="col-2">
+                        <input  class="form-control form-control-sm"
+                                type="number"
+                                id="steps"
+                                v-model="state.steps"
+                                :disabled="inProgress"
+                        >
+                    </div>
+                </div>
+
                 <div class="row my-2 justify-content-center">
                     <div class="col-auto">
                         <button type="button"
                                 class="btn btn-primary"
                                 :disabled="inProgress"
                                 @click.prevent="step">
-                            Step
+                            Run
                         </button>
                     </div>
                 </div>
