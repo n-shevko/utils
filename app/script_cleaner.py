@@ -127,7 +127,7 @@ class Worker(margin_revisions_acceptor.Worker):
         extra = ''
         if limit_reached_times > 0:
             extra = f'''<br><br>When the model generated answers for {limit_reached_times} chunks it wanted to generate bigger answer
-             but the size of output tokens limited it.<br> To avoid such situations you can increase 'Percent of LLM context to use for response' parameter value'''
+             but the size of response limited it.<br> if you want to avoid such situations you can increase 'Percent of LLM context to use for response' parameter value'''
 
         await self.notify(f"Done. Result is in file {out_file}{extra}", callbacks=['unlockRun'])
 
