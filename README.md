@@ -1,8 +1,8 @@
 ## What it does
 1. Accepts all changes (aka revisions) in document margins of docx file.
-   Microsoft Word displays formatting and deletion changes in the margins. Tab "Margin revisions acceptor"
-2. Recovers EndNote (commercial software) citations that were broken inside docx file. Tab "Citations recovering"
-3. [Script Cleaner](./script_cleaner.md)  Tab "Script cleaner"
+   Microsoft Word displays formatting and deletion changes in the margins. Located on tab "Margin revisions acceptor"
+2. Recovers EndNote (commercial software) citations that were broken inside docx file. Located on tab "Citations recovering"
+3. [Script Cleaner](./script_cleaner.md)  Located on tab "Script cleaner"
 
 ## How to install it
 1. Install docker
