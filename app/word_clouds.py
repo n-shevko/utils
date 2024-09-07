@@ -108,7 +108,9 @@ class Worker(text_image_feedback_spiral.Worker):
             'fn': 'update',
             'value': {
                 'black_list': black_list,
-                'top_by_years': top_by_years
+                'top_by_years': top_by_years,
+                'year_to_source_files': json.loads(await get('year_to_source_files')),
+                'included_parts_of_speech': json.loads(await get('included_parts_of_speech'))
             }
         })
 

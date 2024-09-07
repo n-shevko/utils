@@ -97,7 +97,7 @@
     <template v-for="(_, idx) in year_to_source_files">
         <div class="row mt-1">
             <div class="col-1">
-                <input class="form-control" type="number" v-model="year_to_source_files[idx].year" @change="updateYear">
+                <input class="form-control" type="number" v-model="year_to_source_files[idx].year" @input="updateYear">
             </div>
             <div class="col-11">{{ year_to_source_files[idx].file }}</div>
         </div>

@@ -26,10 +26,6 @@ word_clouds = {
     years_config: {},
     inProgress: false,
   },
-  created() {
-    this.year_to_source_files = JSON.parse(this.state.year_to_source_files);
-    this.included_parts_of_speech = JSON.parse(this.state.included_parts_of_speech);
-  },
   watch: {
     year_to_source_files(newVal) {
       if (typeof(newVal) === 'string') {
