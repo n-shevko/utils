@@ -109,7 +109,8 @@ def save_png(request):
     formatted_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     out = shlex.quote(os.path.join(config['folder_with_pdfs'], f"{formatted_datetime}.mp4"))
     script = os.path.join(settings.BASE_DIR, 'app', 'word_clouds_manim.py')
-    res = os.system(f"manim {script} -r {config['screen_width']},{config['screen_height']} ImageSlideshow -o {out}")
+    cmd = f"manim {script} -r {config['screen_width']},{config['screen_height']} ImageSlideshow -o {out}"
+    res = os.system(cmd)
     if res == 0:
         return JsonResponse({'out': out}, safe=False)
     else:
