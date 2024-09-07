@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 from app import text_image_feedback_spiral
 
@@ -21,20 +22,24 @@ class Worker(text_image_feedback_spiral.Worker):
     def extract_words_from_text(self, text, file, nlp):
         doc = nlp(text)
         tmp = []
+        highpoints = re.compile(u'[\uD800-\uDBFF][\uDC00-\uDFFF]')
         for token in doc:
             if not token.is_alpha:
                 continue
 
             tmp.append(
                 Word(
-                    original=token.text,
-                    lemma=token.lemma_,
+                    original=highpoints.sub(u'', token.text),
+                    lemma=highpoints.sub(u'', token.lemma_),
                     source_file=file,
                     part_of_speech=token.pos_
                 )
             )
         if tmp:
-            Word.objects.bulk_create(tmp)
+            try:
+                Word.objects.bulk_create(tmp)
+            except Exception as _:
+                raise Exception(f"Can't import page from file {file}")
 
     @database_sync_to_async
     def count_freqs(self, year_to_source_files):
