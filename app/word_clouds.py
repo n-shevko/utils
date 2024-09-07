@@ -22,15 +22,15 @@ class Worker(text_image_feedback_spiral.Worker):
     def extract_words_from_text(self, text, file, nlp):
         doc = nlp(text)
         tmp = []
-        highpoints = re.compile(u'[\uD800-\uDBFF][\uDC00-\uDFFF]')
+        re_pattern = re.compile(u'[^\u0000-\uD7FF\uE000-\uFFFF]', re.UNICODE)
         for token in doc:
             if not token.is_alpha:
                 continue
 
             tmp.append(
                 Word(
-                    original=highpoints.sub(u'', token.text),
-                    lemma=highpoints.sub(u'', token.lemma_),
+                    original=re_pattern.sub(u'\uFFFD', token.text),
+                    lemma=re_pattern.sub(u'\uFFFD', token.lemma_),
                     source_file=file,
                     part_of_speech=token.pos_
                 )
