@@ -17,6 +17,7 @@ WORKDIR /src
 RUN touch prod
 COPY packages .
 RUN pip install -r packages
+RUN python -m spacy download en_core_web_md
 COPY . .
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["/src/entrypoint.sh"]
