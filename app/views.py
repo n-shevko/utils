@@ -113,4 +113,4 @@ def save_png(request):
     if res == 0:
         return JsonResponse({'out': out}, safe=False)
     else:
-        return JsonResponse({'error': ''}, safe=False)
+        return JsonResponse({'error': cmd}, safe=False)

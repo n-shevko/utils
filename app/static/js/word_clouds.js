@@ -127,7 +127,7 @@ word_clouds = {
           }
       }).then(response => response.json())
         .then(data => {
-          this.inProgress = false;
+          self.inProgress = false;
           if (data.out === undefined) {
             alert("Somethig went wrong")
           } else {
