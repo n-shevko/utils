@@ -79,10 +79,11 @@ document.addEventListener('DOMContentLoaded', function() {
         this.modal = new bootstrap.Modal(document.getElementById('modal'));
         this.modal.show();
       },
-      openModal(val, dialogTitle, fileDst){
+      openModal(val, dialogTitle, fileDst, modalCallback){
         this.dialog = val;
         this.dialogTitle = dialogTitle;
         this.fileDst = fileDst;
+        this.modalCallback = modalCallback;
         this.initModal();
       },
       initJsTree() {
@@ -129,6 +130,9 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       closeFileSelect() {
         $('#jstree').jstree(true).destroy();
+        if (this.modalCallback) {
+          this.modalCallback();
+        }
         this.hideModal();
       },
       onMessage(event) {

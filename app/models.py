@@ -150,3 +150,24 @@ class Step(models.Model):
     class Meta:
         verbose_name = 'Step'
         verbose_name_plural = 'Steps'
+
+
+class Word(models.Model):
+    original = models.CharField(max_length=100)
+    lemma = models.CharField(max_length=100)
+    source_file = models.CharField(max_length=200)
+    part_of_speech = models.CharField(max_length=10)
+
+
+class WordFreqs(models.Model):
+    year = models.IntegerField(blank=True, null=True)
+    lemma = models.CharField(max_length=100)
+    frequency = models.IntegerField(blank=True, null=True)
+    part_of_speech = models.CharField(max_length=10)
+
+
+class Lists(models.Model):
+    lemma = models.CharField(max_length=100)
+    black_or_white = models.CharField(max_length=10)
+    set_by = models.CharField(max_length=10)
+    frequencies = models.CharField(max_length=100, default="")

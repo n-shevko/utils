@@ -10,6 +10,19 @@ from app.models import Config
 from app.defaults import defaults
 
 
+def each_slice(ls, size):
+    start = 0
+    finish = size
+    slice = ls[start:finish]
+    res = []
+    while slice:
+        res.append(slice)
+        start = finish
+        finish = start + size
+        slice = ls[start:finish]
+    return res
+
+
 class db():
     async def __aenter__(self):
         config = settings.DATABASES['default']

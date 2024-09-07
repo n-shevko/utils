@@ -34,5 +34,16 @@ Pay attention to other chunks as well to gain more context understanding. Don't 
         'suggest_changes_request': '''What do you think it is better change in this image? Make your suggestions as prompt to dalle 3.
 Provide only suggestions as not numbered list and without any other text.''',
         'steps': '1'
+    },
+    'word_clouds': {
+        'folder_with_pdfs': '',
+        'top': '100',
+        'words_video': '',
+        'included_parts_of_speech': '[]',
+        'screen_width': '1920',
+        'screen_height': '1080',
+        'background_color': '#ffffff',
+        'year_to_source_files': '[]',
+        'year_duration': '3'
     }
 }
