@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 RUN apt-get update
 RUN apt-get install -y git
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server=8.0.37-0ubuntu0.22.04.3
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
 
 RUN apt-get update
 RUN apt-get install -y curl ffmpeg
@@ -16,8 +16,11 @@ RUN apt install -y python3 python3-pip default-libmysqlclient-dev pkg-config gos
 WORKDIR /src
 RUN touch prod
 COPY packages .
+RUN apt-get install -y libpango1.0-dev pkg-config python3-dev
+RUN pip install meson ninja
+RUN pip install wheel
 RUN pip install -r packages
-RUN python -m spacy download en_core_web_md
+RUN python3 -m spacy download en_core_web_md
 COPY . .
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["/src/entrypoint.sh"]
