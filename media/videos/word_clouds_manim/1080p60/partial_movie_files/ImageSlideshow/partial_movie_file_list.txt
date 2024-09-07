@@ -1,3 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:/home/nikos/utils/media/videos/word_clouds_manim/1080p60/partial_movie_files/ImageSlideshow/3977891868_4071659840_1169912088.mp4'
-file 'file:/home/nikos/utils/media/videos/word_clouds_manim/1080p60/partial_movie_files/ImageSlideshow/2852726489_3891874688_3452699392.mp4'
