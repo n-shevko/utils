@@ -149,3 +149,4 @@ if not os.path.exists(MEDIA_ROOT):
 MEDIA_URL = '/media/'
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
