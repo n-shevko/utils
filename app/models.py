@@ -155,7 +155,7 @@ class Step(models.Model):
 class Word(models.Model):
     original = models.CharField(max_length=100)
     lemma = models.CharField(max_length=100)
-    source_file = models.CharField(max_length=200)
+    source_file = models.TextField(max_length=2000)
     part_of_speech = models.CharField(max_length=10)
 
 
