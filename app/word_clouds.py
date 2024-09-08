@@ -154,7 +154,7 @@ class Worker(text_image_feedback_spiral.Worker):
                 continue
 
             path = os.path.join(folder_with_pdfs, file)
-            created_at = datetime.fromtimestamp(os.path.getctime(path))
+            created_at = datetime.fromtimestamp(os.path.getmtime(path))
             year_to_source_files.append({
                 'year': created_at.year,
                 'file': file
