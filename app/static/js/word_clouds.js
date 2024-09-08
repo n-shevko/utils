@@ -72,14 +72,13 @@ word_clouds = {
       this.sendMessage({fn: 'extract_words'});
     },
     showCreatedAt() {
-      this.inProgress = true;
       this.sendMessage({fn: 'calc_created_at'});
     },
     updateYear() {
       if (!this.year_to_source_files.every( i => String(i.year).length === 4)) {
         return
       }
-      this.inProgress = true;
+
       this.sendMessage({
         fn: 'update_year',
         value: JSON.stringify(this.year_to_source_files)
