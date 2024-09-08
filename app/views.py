@@ -14,7 +14,10 @@ import shlex
 from datetime import datetime
 from django.conf import settings
 
+from django.contrib.admin.views.decorators import staff_member_required
 
+
+# @staff_member_required
 def main(request):
     current_tab = KeyValue.objects.filter(key_field='current_tab').first()
     current_tab = current_tab.value if current_tab else 'citations_recovering'

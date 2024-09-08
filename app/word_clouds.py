@@ -163,12 +163,9 @@ class Worker(text_image_feedback_spiral.Worker):
                 'year_to_source_files': year_to_source_files_as_json,
             }
         })
-        await self.extract_words(None)
 
     async def update_year(self, params):
         await update('year_to_source_files', params['value'])
-        await self.extract_words(None)
-        await self.load_top_by_years()
 
     @database_sync_to_async
     def load_words(self):
