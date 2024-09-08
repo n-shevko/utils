@@ -170,4 +170,4 @@ class Lists(models.Model):
     lemma = models.CharField(max_length=100)
     black_or_white = models.CharField(max_length=10)
     set_by = models.CharField(max_length=10)
-    frequencies = models.CharField(max_length=100, default="")
+    frequencies = models.TextField(max_length=2000, default="")
