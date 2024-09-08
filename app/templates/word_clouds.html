@@ -10,10 +10,13 @@
                 Select folder with pdfs
             </button>
         </div>
-        <div class="col-4">
+        <div class="col-3">
             {{ state.folder_with_pdfs }}
         </div>
-        <div class="col-2">
+        <div class="col-3">
+            <button type="button" class="btn btn-primary" @click.prevent="recalc_freqs">
+                Recalculate frequencies
+            </button>
             <button type="button" class="btn btn-primary" @click.prevent="extract_words">
                 Extract words
             </button>
@@ -155,7 +158,7 @@
                                         <br>(too big size may hide frequent words, clicking regenerate may help)
                                     </label>
                                     <input type="range" class="form-range" v-model="top_by_years[idx].weight_factor"
-                                           @change="updateWeightFactors(item.year)" min="1" max="32"
+                                           @change="updateWeightFactors(item.year)" min="0" step="any" max="32"
                                            :id="item.year + 'weightFactor'">
                                 </div>
                             </div>
