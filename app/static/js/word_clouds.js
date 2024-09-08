@@ -98,6 +98,14 @@ word_clouds = {
       )
       this.inProgress = true;
     },
+    recalc_freqs() {
+      this.sendMessage(
+        {
+          fn: 'recalc_freqs'
+        }
+      )
+      this.inProgress = true;
+    },
     updateWeightFactors(year) {
       let weight_factors = {}
       this.top_by_years.map(function (i) {

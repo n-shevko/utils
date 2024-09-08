@@ -140,6 +140,11 @@ class Worker(text_image_feedback_spiral.Worker):
         await self.update_included_parts_of_speech_sync(included_parts_of_speech)
         await self.load_top_by_years()
 
+    async def recalc_freqs(self, _):
+        year_to_source_files = json.loads(await get('year_to_source_files'))
+        await self.count_freqs(year_to_source_files)
+        await self.load_top_by_years()
+
     async def calc_created_at(self, _):
         folder_with_pdfs = await get('folder_with_pdfs')
         year_to_source_files = []
