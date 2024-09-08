@@ -36,6 +36,11 @@ word_clouds = {
       this.inProgress = false;
     }
   },
+  computed:{
+    year_to_source_files_sorted() {
+      return this.year_to_source_files.sort((a, b) => parseInt(a.year) - parseInt(b.year));
+    }
+  },
   methods: {
     preview(year) {
       let self = this;
