@@ -41,7 +41,7 @@ word_clouds = {
       let self = this;
       this.top_by_years.map(function (item) {
         if (year === undefined || item.year === year) {
-          let list = item.words.map(function (word) {
+          let list = item.words.slice(0, parseInt(self.state.top)).map(function (word) {
             return [word.lemma, word.frequency];
           });
 
@@ -63,10 +63,6 @@ word_clouds = {
     word_clouds() {
       this.sendMessage({fn: 'word_clouds_context'});
     },
-    topChanged() {
-      this.inProgress = true;
-      this.sendMessage({fn: 'word_clouds_context'});
-    },
     extract_words() {
       this.inProgress = true;
       this.sendMessage({fn: 'extract_words'});
@@ -85,10 +81,43 @@ word_clouds = {
       });
     },
     addToBlacklist(word) {
+      for (let i = 0; i < this.top_by_years.length; i++) {
+        for (let j = 0; j < this.top_by_years[i].words.length; j++) {
+          if (this.top_by_years[i].words[j].lemma === word.lemma) {
+            this.top_by_years[i].words.splice(j, 1);
+          }
+        }
+      }
       this.sendMessage({fn: 'add_to_blacklist', id: word.id});
     },
-    addToWhitelist(word) {
+    addBlackword(params) {
+      let word = params.word;
+      for (let i = 0; i < this.black_list.length; i++) {
+        if (parseInt(word.frequencies) > parseInt(this.black_list[i].frequencies)) {
+          this.black_list.splice(i, 0, word);
+          break;
+        }
+      }
+    },
+    addToWhitelist(word, idx) {
+      this.black_list.splice(idx, 1);
       this.sendMessage({fn: 'add_to_whitelist', id: word.id});
+    },
+    addWhiteWord(params) {
+      let words = params.words;
+      for (let i = 0; i < this.top_by_years.length; i++) {
+        let word = words[this.top_by_years[i].year];
+        if (word === undefined) {
+          continue
+        }
+
+        for (let j = 0; j < this.top_by_years[i].words.length; j++) {
+          if (word.frequency > this.top_by_years[i].words[j].frequency) {
+            this.top_by_years[i].words.splice(j, 0, word);
+            break;
+          }
+        }
+      }
     },
     parts_of_speech_updated() {
       this.sendMessage(

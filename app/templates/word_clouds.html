@@ -40,7 +40,6 @@
                     min="1"
                     max="1000"
                     step="1"
-                    @change="topChanged"
             >
         </div>
     </div>
@@ -121,11 +120,11 @@
                 <div class="card-body">
                     <small class="d-inline-flex px-2 py-1 fw-semibold border rounded-2 m-1"
                            :class="word.set_by === 'manual' ? 'border-success' : 'border-dark-subtle'"
-                           v-for="word in black_list"
+                           v-for="(word, idx) in black_list"
                     >
                         {{ word.lemma }} {{ word.frequencies }}
                         <button type="button" class="btn-close" aria-label="Close"
-                                @click.prevent="addToWhitelist(word)"></button>
+                                @click.prevent="addToWhitelist(word, idx)"></button>
                     </small>
                 </div>
             </div>
@@ -137,7 +136,7 @@
                         {{ item.year }}
                     </div>
                     <div class="card-body">
-                        <template v-for="word in item.words">
+                        <template v-for="(word, word_idx) in item.words" v-if="word_idx < state.top">
                             <small class="d-inline-flex px-2 py-1 fw-semibold border rounded-2 m-1"
                                    :class="word.in_whitelist ? 'border-success' : 'border-dark-subtle'"
                             >
