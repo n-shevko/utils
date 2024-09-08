@@ -73,14 +73,6 @@ class Worker(text_image_feedback_spiral.Worker):
         Word.objects.all().delete()
 
     @database_sync_to_async
-    def select_years(self):
-        return sorted([item['year'] for item in WordFreqs.objects.values('year').distinct()], reverse=True)
-
-    @database_sync_to_async
-    def select_top_for_year(self, year, top, black_list):
-        return list(WordFreqs.objects.filter(year=year).exclude(lemma__in=black_list).order_by('-frequency')[:top].values())
-
-    @database_sync_to_async
     def load_black_list(self):
         blacklist = list(Lists.objects.filter(black_or_white='black').values())
         return list(sorted(blacklist, key=lambda item: max([int(x) for x in item['frequencies'].split(',')]), reverse=True))
@@ -89,25 +81,37 @@ class Worker(text_image_feedback_spiral.Worker):
     def load_white_list(self):
         return set([word.lemma for word in Lists.objects.filter(black_or_white='white')])
 
-    async def load_top_by_years(self):
-        top = int(await get('top'))
-        top_by_years = []
+    @database_sync_to_async
+    def select_all_words(self):
+        return list(WordFreqs.objects.all().values())
 
+    async def load_top_by_years(self):
         black_list = await self.load_black_list()
-        black_list_words = [item['lemma'] for item in black_list]
+        black_list_words = set([item['lemma'] for item in black_list])
         years = sorted(list(set([int(item['year']) for item in json.loads(await get('year_to_source_files'))])), reverse=True)
 
         weight_factors = json.loads(await get('weight_factors', '{}'))
         white_list = await self.load_white_list()
+
+        all_words = await self.select_all_words()
+        tmp = {}
+        for word in all_words:
+            if word['lemma'] in black_list_words:
+                continue
+
+            word['in_whitelist'] = word['lemma'] in white_list
+            tmp.setdefault(word['year'], []).append(word)
+
+        top_by_years = []
         for year in years:
-            words = await self.select_top_for_year(year, top, black_list_words)
-            for word in words:
-                word['in_whitelist'] = word['lemma'] in white_list
-            top_by_years.append({
-                'year': year,
-                'words': words,
-                'weight_factor': weight_factors.get(str(year), 4)
-            })
+            tmp2 = sorted(tmp.get(year, []), key=lambda x: x['frequency'], reverse=True)
+            top_by_years.append(
+                {
+                    'year': year,
+                    'words': tmp2,
+                    'weight_factor': weight_factors.get(str(year), 4)
+                }
+            )
 
         await self.send_msg({
             'fn': 'update',
@@ -210,17 +214,27 @@ class Worker(text_image_feedback_spiral.Worker):
     def add_to_blacklist_sync(self, params):
         word = WordFreqs.objects.filter(id=params['id']).first()
         Lists.objects.filter(lemma=word.lemma).delete()
-        freqs = ','.join([str(word.frequency) for word in WordFreqs.objects.filter(lemma=word.lemma)])
-        Lists(
+        freqs = str(max([word.frequency for word in WordFreqs.objects.filter(lemma=word.lemma)]))
+        blackword = Lists(
             lemma=word.lemma,
             black_or_white='black',
             set_by='manual',
             frequencies=freqs
-        ).save()
+        )
+        blackword.save()
+        return {
+            'lemma': blackword.lemma,
+            'frequencies': freqs,
+            'set_by': 'manual',
+            'id': blackword.id
+        }
 
     async def add_to_blacklist(self, params):
-        await self.add_to_blacklist_sync(params)
-        await self.load_top_by_years()
+        blackword = await self.add_to_blacklist_sync(params)
+        await self.send_msg({
+            'fn': 'addBlackword',
+            'word': blackword
+        })
 
     @database_sync_to_async
     def add_to_whitelist_sync(self, params):
@@ -232,7 +246,26 @@ class Worker(text_image_feedback_spiral.Worker):
             set_by='manual'
         ).save()
 
+        words = {}
+        for w in WordFreqs.objects.filter(lemma=word.lemma):
+            words.setdefault(w.year, []).append(w)
+
+        tmp = {}
+        for y, ws in words.items():
+            w = sorted(ws, key=lambda w: w.frequency, reverse=True)[0]
+            tmp[y] = {
+                'id': w.id,
+                'lemma': w.lemma,
+                'frequency': w.frequency,
+                'in_whitelist': True
+            }
+        return tmp
+
     async def add_to_whitelist(self, params):
-        await self.add_to_whitelist_sync(params)
-        await self.load_top_by_years()
+        words = await self.add_to_whitelist_sync(params)
+        await self.send_msg({
+            'fn': 'addWhiteWord',
+            'words': words
+        })
+
 
