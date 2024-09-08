@@ -193,12 +193,12 @@ class Worker(text_image_feedback_spiral.Worker):
         words_to_exclude = {}
         for word in WordFreqs.objects.all():
             if word.lemma in blacklisted:
-                words_to_exclude.setdefault(word.lemma, []).append(str(word.frequency))
+                words_to_exclude.setdefault(word.lemma, []).append(word.frequency)
             elif word.part_of_speech in excluded_pos and word.lemma not in whitelisted:
-                words_to_exclude.setdefault(word.lemma, []).append(str(word.frequency))
+                words_to_exclude.setdefault(word.lemma, []).append(word.frequency)
 
         Lists.objects.filter(black_or_white='black').exclude(set_by='manual').delete()
-        tmp = [Lists(black_or_white='black', set_by='pos', lemma=lemma, frequencies=','.join(frequencies)) for lemma, frequencies in words_to_exclude.items()]
+        tmp = [Lists(black_or_white='black', set_by='pos', lemma=lemma, frequencies=str(max(frequencies))) for lemma, frequencies in words_to_exclude.items()]
         Lists.objects.bulk_create(tmp)
 
     async def update_included_parts_of_speech(self, params):
