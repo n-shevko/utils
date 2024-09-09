@@ -75,11 +75,8 @@ word_clouds = {
     showCreatedAt() {
       this.sendMessage({fn: 'calc_created_at'});
     },
-    updateYear() {
-      if (!this.year_to_source_files.every( i => String(i.year).length === 4)) {
-        return
-      }
-
+    updateYear(idx, value) {
+      this.year_to_source_files_sorted[idx].year = value;
       this.sendMessage({
         fn: 'update_year',
         value: JSON.stringify(this.year_to_source_files)

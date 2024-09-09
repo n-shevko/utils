@@ -114,7 +114,7 @@
     <template v-for="(_, idx) in year_to_source_files_sorted">
         <div class="row mt-1">
             <div class="col-1">
-                <input class="form-control" type="number" v-model="year_to_source_files_sorted[idx].year" @input="updateYear">
+                <input class="form-control" type="number" :value="year_to_source_files_sorted[idx].year" @change="updateYear(idx, $event.target.value)">
             </div>
             <div class="col-11">{{ year_to_source_files_sorted[idx].file }}</div>
         </div>
