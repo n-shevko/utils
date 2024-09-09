@@ -76,11 +76,20 @@
                 <input type="text" class="form-control" id="height" v-model="state.screen_height" @change="preview(undefined)">
             </div>
         </div>
-        <div class="col-2">
+        <div class="col-3 d-flex">
             <div class="mb-3">
                 <label for="color" class="form-label">Background color</label>
                 <input type="color" class="form-control form-control-color" id="color" v-model="state.background_color"
                        @change="preview(undefined)">
+            </div>
+
+            <div class="mb-3 mx-3">
+                <label for="all_weight_factor" class="form-label">
+                    Weight factor {{ state.all_weight_factor }}
+                </label>
+                <input type="range" class="form-range" v-model="state.all_weight_factor"
+                       @change="updateWeightFactorsAndPreview" min="0" step="any" max="32"
+                       id="all_weight_factor">
             </div>
         </div>
         <div class="col-2">

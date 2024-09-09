@@ -44,6 +44,7 @@ Provide only suggestions as not numbered list and without any other text.''',
         'screen_height': '1080',
         'background_color': '#ffffff',
         'year_to_source_files': '[]',
-        'year_duration': '3'
+        'year_duration': '3',
+        'all_weight_factor': '1'
     }
 }

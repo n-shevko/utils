@@ -109,7 +109,7 @@ class Worker(text_image_feedback_spiral.Worker):
                 {
                     'year': year,
                     'words': tmp2,
-                    'weight_factor': weight_factors.get(str(year), 4)
+                    'weight_factor': weight_factors.get(str(year), 1)
                 }
             )
 

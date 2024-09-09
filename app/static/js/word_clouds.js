@@ -176,6 +176,13 @@ word_clouds = {
             self.state.words_video = data.out;
           }
         })
+    },
+    updateWeightFactorsAndPreview() {
+      for (let i = 0; i < this.top_by_years.length; i++) {
+
+        this.top_by_years[i].weight_factor = this.state.all_weight_factor;
+      }
+      this.preview(undefined);
     }
   }
 }
