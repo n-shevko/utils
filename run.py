@@ -10,6 +10,11 @@ def main():
     args = parser.parse_args()
 
     data = shlex.quote(args.data)
+    if not os.path.exists(data):
+        user_folder = os.path.expanduser('~')
+        print(f"Folder {data} doesn't exist so {user_folder} will be used")
+        data = user_folder
+
     os.system('docker pull nikos123/utils:1.0.0')
     os.system('docker stop -t 0 utils_container')
     os.system('docker rm utils_container')

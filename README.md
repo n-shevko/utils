@@ -21,7 +21,7 @@ git clone https://github.com/n-shevko/utils.git
 ## Usage
 ```
 cd utils
-python3 run.py /path/to/folder/that/app/will/see
+python3 run.py
 ```
 When the following line will be shown
 ```
@@ -33,6 +33,15 @@ To stop service just press Control+C
 
 Also you can change port that app will use
 ```
-python3 run.py --port 3000 /path/to/folder/that/app/will/see
+python3 run.py --port 3000
 ```
 The app works without Internet.
+
+
+By default user home folder will be available for files selection.
+If you need other folder to be available you should run application using the command like this:
+
+```
+cd utils
+python3 run.py /path/to/folder/that/app/will/see
+```
